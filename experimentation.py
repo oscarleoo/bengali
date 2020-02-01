@@ -2,14 +2,74 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 %matplotlib inline
-train = pd.concat([
-    pd.read_parquet('bengali/data/train_image_data_0.parquet'),
-    pd.read_parquet('bengali/data/train_image_data_1.parquet'),
-    pd.read_parquet('bengali/data/train_image_data_2.parquet'),
-    pd.read_parquet('bengali/data/train_image_data_3.parquet')
-])
-train = train.set_index('image_id', drop=True)
-trainIds = pd.read_csv('bengali/data/train.csv')
+import cv2
+
+###################################
+#       SETTINGS
+###################################
+
+def bbox(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+    return rmin, rmax, cmin, cmax
+
+def crop_resize(img0, size=128, pad=16):
+    ymin,ymax,xmin,xmax = bbox(img0[5:-5,5:-5] > 80)
+    xmin = xmin - 13 if (xmin > 13) else 0
+    ymin = ymin - 10 if (ymin > 10) else 0
+    xmax = xmax + 13 if (xmax < 236 - 13) else 236
+    ymax = ymax + 10 if (ymax < 137 - 10) else 137
+    img = img0[ymin:ymax,xmin:xmax]
+    img[img < 28] = 0
+    lx, ly = xmax-xmin,ymax-ymin
+    l = max(lx,ly) + pad
+    img = np.pad(img, [((l-ly)//2,), ((l-lx)//2,)], mode='constant')
+    return cv2.resize(img,(size,size))
+
+import os
+import joblib
+
+def preprocess_images(types):
+
+    if os.path.exists('data/images'):
+        IMAGES = joblib.load('data/images')
+    else:
+        IMAGES = {}
+
+    FILES = []
+    for file_type in types:
+        FILES.extend([
+            '{}_image_data_0.parquet'.format(file_type),
+            '{}_image_data_1.parquet'.format(file_type),
+            '{}_image_data_2.parquet'.format(file_type),
+            '{}_image_data_3.parquet'.format(file_type),
+        ])
+
+    for file_path in FILES:
+        df = pd.read_parquet('data/{}'.format(file_path))
+        df = df[~df['image_id'].isin(IMAGES.keys())]
+        print(file_path, len(df))
+        for idx in range(len(df)):
+            image_id = df.iloc[idx, 0]
+            if image_id in IMAGES.keys():
+                continue
+            img = 255 - df.iloc[idx, 1:].values.reshape(137, 236).astype(np.uint8)
+            img = (img * (255.0 / img.max())).astype(np.uint8)
+            img = crop_resize(img)
+            IMAGES[image_id] = img
+        del df
+    joblib.dump(IMAGES, 'data/images')
+    return IMAGES
+
+images = preprocess_images(['train', 'test'])
+
+IMAGES = joblib.load('data/images')
+
+plt.imshow(IMAGES['Train_9'], cmap='gray')
+
+trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 def show_examples(grapheme_root, vowel_diacritic, consonant_diacritic, n=10):
@@ -20,7 +80,7 @@ def show_examples(grapheme_root, vowel_diacritic, consonant_diacritic, n=10):
 
     for i in range(n):
         random_id = np.random.choice(ids.index)
-        example = 255 - train.loc[random_id].values.reshape(137, 236).astype(np.uint8)
+        example = IMAGES[random_id].copy()
         binary1 = example >= 80
         binary2 = example >= 150
         fig, axes = plt.subplots(ncols=3, nrows=1, figsize=(10, 3))
@@ -46,9 +106,6 @@ from keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from keras.optimizers import Adam
 from keras.models import Model
 from keras.utils import Sequence
-
-from keras import backend as K
-K.tensorflow_backend._get_available_gpus()
 
 def get_image(image_id):
 
@@ -80,13 +137,7 @@ class ImageGenerator(Sequence):
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
 
         for i, image_id in enumerate(batch_ids):
-            x = 255 - train.loc[image_id].values.reshape(137, 236).astype(np.uint8)
-            x1 = x >= 80
-            x2 = x >= 150
-            x = x - x.min()
-            x = x / x.max()
-
-            X[i] = np.stack([x, x1, x2], axis=2)
+            X[i] = get_image(image_id)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
@@ -104,9 +155,8 @@ class ImageGenerator(Sequence):
 ids = list(trainIds.index)
 np.random.shuffle(ids)
 len(ids)
-train_ids = ids[:150000]
-valid_ids = ids[150000:]
-150000/512
+train_ids = ids[:200000]
+valid_ids = ids[200000:]
 train_generator = ImageGenerator(train_ids, 64, True)
 valid_generator = ImageGenerator(valid_ids, 128, True)
 
@@ -133,35 +183,51 @@ history = model.fit_generator(
 
 
 def make_predictions(image_ids):
-    predictions, images = [], []
+    grapheme_root_predictions = []
+    vowel_diacritic_predictions = []
+    consonant_diacritic_predictions = []
+    images = []
     for image_id in image_ids:
         images.append(get_image(image_id))
         if len(images) == 512:
-            predictions.extend(model.predict(np.array(images)))
+            predictions = model.predict(np.array(images))
+            predictions = [p.argmax(axis=1) for p in predictions]
+            grapheme_root_predictions.extend(predictions[0])
+            vowel_diacritic_predictions.extend(predictions[1])
+            consonant_diacritic_predictions.extend(predictions[2])
             images = []
-    predictions.extend(model.predict(np.array(images)))
-    return predictions
+    predictions = model.predict(np.array(images))
+    predictions = [p.argmax(axis=1) for p in predictions]
+    grapheme_root_predictions.extend(predictions[0])
+    vowel_diacritic_predictions.extend(predictions[1])
+    consonant_diacritic_predictions.extend(predictions[2])
+    return pd.DataFrame([
+        valid_ids[:100], grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
+    ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
 
+def get_true_values(image_ids):
 
-predictions = make_predictions(valid_ids[:100])
-predictions[0].shape
+    for img_id in
 
-predictions[0].argmax(axis=1).shape
+grp, vdp, cdp = make_predictions(valid_ids[:100])
 
-len(predictions)
-predictions[0].shape
+submission = pd.DataFrame([valid_ids[:100], grp, vdp, cdp], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
 
-predictions = model.predict_generator(valid_generator)
-predictions[0].shape
+submission
+trainIds
 
+trueValues = trainIds.loc[submission.index]
+trueValues
 
 
 import numpy as np
 import sklearn.metrics
+trueValues[trueValues[component] == component]
+trueValues
 
 scores = []
 for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
-    y_true_subset = solution[solution[component] == component]['target'].values
+    y_true_subset = trueValues[trueValues[component] == component]['target'].values
     y_pred_subset = submission[submission[component] == component]['target'].values
     scores.append(sklearn.metrics.recall_score(y_true_subset, y_pred_subset, average='macro'))
 final_score = np.average(scores, weights=[2,1,1])
