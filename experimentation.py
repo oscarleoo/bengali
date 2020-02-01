@@ -152,11 +152,6 @@ class ImageGenerator(Sequence):
         if self.is_train:
             np.random.shuffle(self.ids)
 
-ids = list(trainIds.index)
-np.random.shuffle(ids)
-len(ids)
-train_ids = ids[:200000]
-valid_ids = ids[200000:]
 train_generator = ImageGenerator(train_ids, 64, True)
 valid_generator = ImageGenerator(valid_ids, 128, True)
 
