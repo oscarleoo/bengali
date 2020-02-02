@@ -10,9 +10,36 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.07, rotate_limit=7, shift_limit=0.1, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.08, rotate_limit=10, shift_limit=0.08, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.5, p=0.8),
+    AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8),
     AA.RandomContrast(limit=0.5, always_apply=True)
 ], p=1)
+
+
+import matplotlib.pyplot as plt
+
+def plot_augmentations():
+
+    random_id = np.random.choice(list(IMAGES.keys()))
+    plt.figure(figsize=(5, 5))
+    plt.imshow(IMAGES[random_id], cmap='gray')
+    plt.show()
+
+    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
+    row, col = 0, 0
+    for i in range(16):
+        aug_img = augmentor(image=IMAGES[random_id].copy())['image']
+        axes[row][col].imshow(aug_img, cmap='gray')
+        axes[row][col].set_xticks([])
+        axes[row][col].set_yticks([])
+        if col == 3:
+            col = 0
+            row += 1
+        else:
+            col += 1
+    plt.tight_layout()
+    plt.show()
 
 def get_image(image_id):
 

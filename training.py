@@ -22,6 +22,8 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=0.00001)
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
+    model_checkpoint = ModelCheckpoint()
+
     model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=300, epochs=1000,
