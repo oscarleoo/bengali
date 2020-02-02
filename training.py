@@ -3,117 +3,167 @@
 ###################################
 
 import cv2
-import joblib
+import pickle
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 import albumentations as AA
-import efficientnet.keras as efn
-from keras.layers import Dense, GlobalAveragePooling2D, Dropout
+from sklearn.metrics import recall_score
 from keras.optimizers import Adam
-from keras.models import Model
-from keras.utils import Sequence
-
-####################################
-#       DATA GENERATOR
-###################################
-
-IMAGES = joblib.load('data/images')
-trainIds = pd.read_csv('data/train.csv')
-trainIds = trainIds.set_index('image_id', drop=True)
-
-def get_image(image_id):
-
-    x = IMAGES[image_id]
-    x1 = x >= 80
-    x2 = x >= 150
-    x = x - x.min()
-    x = x / x.max()
-    return np.stack([x, x1, x2], axis=2)
-
-class ImageGenerator(Sequence):
-
-    def __init__(self, ids, batch_size, is_train):
-        self.ids = ids
-        self.batch_size = batch_size
-        self.is_train = is_train
-
-    def __len__(self):
-        return int(len(self.ids) / self.batch_size)
-
-    def __getitem__(self, idx):
-
-        batch_ids = self.ids[idx * self.batch_size : (idx+1) * self.batch_size]
-
-        X = np.zeros((self.batch_size, 128, 128, 3))
-        grapheme_root_Y = np.zeros((self.batch_size, 168))
-        vowel_diacritic_Y = np.zeros((self.batch_size, 11))
-        consonant_diacritic_Y = np.zeros((self.batch_size, 7))
-
-        for i, image_id in enumerate(batch_ids):
-            X[i] = get_image(image_id)
-            grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
-            vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
-            consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
-
-        return X, {
-            'grapheme_root': grapheme_root_Y,
-            'vowel_diacritic': vowel_diacritic_Y,
-            'consonant_diacritic': consonant_diacritic_Y
-        }
-
-    def on_epoch_end(self):
-        if self.is_train:
-            np.random.shuffle(self.ids)
-
-splits = pd.read_csv('splits/split1/split.csv')
-train_generator = ImageGenerator(list(splits[splits['split'] == 'train']['image_id']), 64, True)
-valid_generator = ImageGenerator(list(splits[splits['split'] == 'valid']['image_id']), 128, True)
 
 ####################################
 #       ALGORITHM
 ###################################
 
-# Backbone
-backbone = efn.EfficientNetB0(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
-global_average = GlobalAveragePooling2D()(backbone.output)
-for layer in backbone.layers:
-    layer.trainable = False
+from algorithms import get_b0_backbone, connect_simple_head, connect_medium_head
+from generators import get_data_generators
 
-# grapheme_root_head
-grapheme_root_dense = Dense(64, activation='relu', name='grapheme_root_dense')(global_average)
-grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(grapheme_root_dense)
+def get_loss():
 
-# vowel_diacritic_head
-vowel_diacritic_dense = Dense(32, activation='relu', name='vowel_diacritic_dense')(global_average)
-vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(vowel_diacritic_dense)
+    loss = {
+    	'grapheme_root': 'categorical_crossentropy',
+    	'vowel_diacritic': 'categorical_crossentropy',
+        'consonant_diacritic': 'categorical_crossentropy'
+    }
 
-# consonant_diacritic_head
-consonant_diacritic_dense = Dense(32, activation='relu', name='consonant_diacritic_dense')(global_average)
-consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(consonant_diacritic_dense)
+    loss_weights = {'grapheme_root': 2.0, 'vowel_diacritic': 1.0,  'consonant_diacritic': 1.0}
 
-# Model
-model = Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
+    return loss, loss_weights
+
+def train_model(backbone_function, connect_head_function, training_path):
+
+    backbone, backbone_output = backbone_function()
+    model = connect_head_function(backbone, backbone_output)
+    loss, loss_weights = get_loss()
+
+    augmentor = AA.Compose([
+        AA.ShiftScaleRotate(scale_limit=0.07, rotate_limit=7, shift_limit=0.1, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+        AA.RandomContrast(limit=0.5, always_apply=True)
+    ], p=1)
+
+    train_generator, valid_generator = get_data_generators('split1', augmentor, 128)
+
+    #
+    #   PRETRAINING
+    #
+
+    model.compile(optimizer=Adam(0.001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    history = model.fit_generator(
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=3,
+        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
+    )
+
+    with open('{}/pretrain_history'.format(training_path), 'wb') as f:
+        pickle.dump(history.history, f)
+    model.save_weights('{}/pretrain_weights.h5'.format(training_path))
+
+    #
+    #   FULL TRAINING STEP 1
+    #
+
+    for layer in backbone.layers:
+        layer.trainable = True
+    model.compile(optimizer=Adam(lr=0.001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    history = model.fit_generator(
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=3,
+        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
+    )
+
+    with open('{}/full_training1'.format(training_path), 'wb') as f:
+        pickle.dump(history.history, f)
+    model.save_weights('{}/full_training1_weights.h5'.format(training_path))
+
+    #
+    #   FULL TRAINING STEP 2
+    #
+
+    model.compile(optimizer=Adam(lr=0.0001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    history = model.fit_generator(
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=3,
+        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
+    )
+
+    with open('{}/full_training2'.format(training_path), 'wb') as f:
+        pickle.dump(history.history, f)
+    model.save_weights('{}/full_training2_weights.h5'.format(training_path))
+
+    #
+    #   FINAL STEP
+    #
+
+    for layer in backbone.layers:
+        layer.trainable = False
+
+    model.compile(optimizer=Adam(lr=0.0001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    history = model.fit_generator(
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=3,
+        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
+    )
+
+    with open('{}/final_step'.format(training_path), 'wb') as f:
+        pickle.dump(history.history, f)
+    model.save_weights('{}/final_step_weights.h5'.format(training_path))
 
 
-model.summary()
+train_model(get_b0_backbone, connect_simple_head, 'training/b0_simple')
+
+
+
 
 ####################################
-#       TRAINING
+#       PREDICTIONS
 ###################################
 
-valid_generator.__len__()
+def make_predictions(image_ids):
+    grapheme_root_predictions = []
+    vowel_diacritic_predictions = []
+    consonant_diacritic_predictions = []
+    images = []
+    for image_id in image_ids:
+        images.append(get_image(image_id))
+        if len(images) == 512:
+            predictions = model.predict(np.array(images))
+            predictions = [p.argmax(axis=1) for p in predictions]
+            grapheme_root_predictions.extend(predictions[0])
+            vowel_diacritic_predictions.extend(predictions[1])
+            consonant_diacritic_predictions.extend(predictions[2])
+            images = []
+    predictions = model.predict(np.array(images))
+    predictions = [p.argmax(axis=1) for p in predictions]
+    grapheme_root_predictions.extend(predictions[0])
+    vowel_diacritic_predictions.extend(predictions[1])
+    consonant_diacritic_predictions.extend(predictions[2])
+    return pd.DataFrame([
+        image_ids, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
+    ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
 
-losses = {
-	'grapheme_root': 'categorical_crossentropy',
-	'vowel_diacritic': 'categorical_crossentropy',
-    'consonant_diacritic': 'categorical_crossentropy'
-}
+predictions = make_predictions(valid_generator.ids)
+predictions.head()
 
-model.compile(optimizer='adam', loss=losses, metrics=['categorical_accuracy'])
+trainIds.head()
 
-history = model.fit_generator(
-    train_generator, steps_per_epoch=10, epochs=5,
-    validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-)
+predictions = predictions.sort_index()
+validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
+validIds.head(5)
+predictions.columns = ['grapheme_root', 'vowel_diacritic', 'consonant_diacritic']
+
+
+scores = []
+for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
+    y_true_subset = validIds[component].values.astype(int)
+    y_pred_subset = predictions[component].values.astype(int)
+    scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
+final_score = np.average(scores, weights=[2,1,1])
+
+
+recall_score(validIds['grapheme_root'].astype(int), predictions['grapheme_root'].astype(int), average='macro')
+recall_score(validIds['grapheme_root'].astype(int), predictions['grapheme_root'].astype(int), average='macro')
+
+
+final_score
+final_score
+
+y_true_subset
+
+
+y_pred_subset
