@@ -4,7 +4,7 @@ from keras.models import Model
 
 
 def get_b0_backbone():
-    backbone = efn.EfficientNetB0(input_shape=(64, 64, 3), include_top=False,  weights=None)
+    backbone = efn.EfficientNetB0(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     global_average = GlobalAveragePooling2D()(backbone.output)
     backbone_output = Dropout(0.5)(global_average)
     return backbone, backbone_output
