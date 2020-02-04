@@ -20,19 +20,18 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         'consonant_diacritic': 'categorical_crossentropy'
     }
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=0.00001)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
 
     model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=300, epochs=1000,
+        train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[reduce_lr, early_stopping]
     )
 
     with open('{}/pretrain_history'.format(training_path), 'wb') as f:
         pickle.dump(history.history, f)
-    model.save_weights('{}/pretrain_weights.h5'.format(training_path))
 
     #
     #   FINAL STEP
@@ -43,14 +42,15 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=300, epochs=1000,
+        train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[reduce_lr, early_stopping]
     )
 
     with open('{}/final_step'.format(training_path), 'wb') as f:
         pickle.dump(history.history, f)
-    model.save_weights('{}/final_step_weights.h5'.format(training_path))
+
+    model.save('{}/model.h5')
 
 
 ####################################

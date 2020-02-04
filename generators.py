@@ -44,11 +44,9 @@ def plot_augmentations():
 def get_image(image_id):
 
     x = IMAGES[image_id]
-    x1 = x >= 80
-    x2 = x >= 150
     x = x - x.min()
     x = x / x.max()
-    return np.stack([x, x1, x2], axis=2)
+    return np.expand_dims(x, 2)
 
 class ImageGenerator(Sequence):
 
@@ -64,7 +62,7 @@ class ImageGenerator(Sequence):
 
         batch_ids = self.ids[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 128, 128, 1))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
@@ -89,6 +87,29 @@ class ImageGenerator(Sequence):
             ids = [id_ for id_ in self.ids]
             np.random.shuffle(ids)
             self.ids = ids
+
+    def make_predictions(self, model):
+        grapheme_root_predictions = []
+        vowel_diacritic_predictions = []
+        consonant_diacritic_predictions = []
+        images = []
+        for image_id in self.ids:
+            images.append(get_image(image_id))
+            if len(images) == 512:
+                predictions = model.predict(np.array(images))
+                predictions = [p.argmax(axis=1) for p in predictions]
+                grapheme_root_predictions.extend(predictions[0])
+                vowel_diacritic_predictions.extend(predictions[1])
+                consonant_diacritic_predictions.extend(predictions[2])
+                images = []
+        predictions = model.predict(np.array(images))
+        predictions = [p.argmax(axis=1) for p in predictions]
+        grapheme_root_predictions.extend(predictions[0])
+        vowel_diacritic_predictions.extend(predictions[1])
+        consonant_diacritic_predictions.extend(predictions[2])
+        return pd.DataFrame([
+            self.ids, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
+        ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
 
 def get_data_generators(split, batch_size):
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
