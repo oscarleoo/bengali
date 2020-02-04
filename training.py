@@ -22,6 +22,16 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     loss_weights = {'grapheme_root': 0.685, 'vowel_diacritic': 0.175, 'consonant_diacritic': 0.14}
 
+    ###############################
+    #   PRETRAINING
+    ###############################
+
+    model.compile(optimizer=Adam(0.001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    history = model.fit_generator(
+        train_generator, steps_per_epoch=500, epochs=1,
+        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
+    )
+
     for layer in backbone.layers:
         layer.trainable = False
 
@@ -30,6 +40,10 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         train_generator, steps_per_epoch=500, epochs=3,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
     )
+
+    ###############################
+    #   TRAINING
+    ###############################
 
     for layer in backbone.layers:
         layer.trainable = True
