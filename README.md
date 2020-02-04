@@ -18,3 +18,5 @@ Since the training dataset is large, I can't sample based on loss. I plan to sam
 1. Sample X images based on class distribution
 2. Calculate loss for the X images
 3. Sample each batch based on loss
+
+## Experiments

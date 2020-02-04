@@ -12,8 +12,8 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.OpticalDistortion(distort_limit=0.1, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.Cutout(num_holes=4, max_h_size=16, max_w_size=16, p=0.5)
     # AA.RandomContrast(limit=0.2, p=0.8)
 ], p=1)
@@ -23,7 +23,7 @@ def plot_augmentations():
     random_id = np.random.choice(list(IMAGES.keys()))
     image = get_image(random_id)
     plt.figure(figsize=(5, 5))
-    plt.imshow(crop_and_resize_image(image), cmap='gray')
+    plt.imshow(crop_and_resize_image(image.copy()), cmap='gray')
     plt.show()
 
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
@@ -64,7 +64,11 @@ def crop_and_resize_image(image):
         diff = int((size - height) / 2)
         image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
 
-    return cv2.resize(image, (64, 64))
+    image = cv2.resize(image, (64, 64))
+    image = image - image.min()
+    image = image / image.max()
+    # image = image.clip(0, 1)
+    return image
 
 
 class ImageGenerator(Sequence):
@@ -79,14 +83,14 @@ class ImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        if self.is_train:
-            batch_images = pd.concat([
-                self.images.sample(n=90, weights='grapheme_root_weight', replace=True),
-                self.images.sample(n=19, weights='vowel_diacritic_weight', replace=True),
-                self.images.sample(n=19, weights='consonant_diacritic_weight', replace=True)
-            ])
-        else:
-            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+        # if self.is_train:
+        #     batch_images = pd.concat([
+        #         self.images.sample(n=90, weights='grapheme_root_weight', replace=True),
+        #         self.images.sample(n=19, weights='vowel_diacritic_weight', replace=True),
+        #         self.images.sample(n=19, weights='consonant_diacritic_weight', replace=True)
+        #     ])
+        # else:
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
@@ -96,11 +100,9 @@ class ImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
             x = get_image(image_id)
-            if self.is_train:
-                x = augmentor(image=x)['image']
+            # if self.is_train:
+            #     x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
-            x = x - x.min()
-            x = x / x.max()
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
@@ -171,7 +173,7 @@ def get_data_generators(split, batch_size):
     df = pd.read_csv('data/train.csv')
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
     train_ids = list(splits[splits['split'] == 'train']['image_id'])
-    valid_ids = list(splits[splits['split'] == 'valid']['image_id'])
+    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
 
     train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
     valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
