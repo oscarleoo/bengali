@@ -20,7 +20,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         'consonant_diacritic': 'categorical_crossentropy'
     }
 
-    loss_weights = {'grapheme_root': 0.9, 'vowel_diacritic': 0.06, 'consonant_diacritic': 0.04}
+    loss_weights = {'grapheme_root': 0.685, 'vowel_diacritic': 0.175, 'consonant_diacritic': 0.14}
 
     for layer in backbone.layers:
         layer.trainable = False
@@ -35,8 +35,8 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     for layer in backbone.layers:
         layer.trainable = True
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
+    early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
 
     model.compile(optimizer=Adam(0.0001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(

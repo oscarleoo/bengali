@@ -13,6 +13,14 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds.head()
 
 
+trainIds['grapheme_root'].value_counts().shape
+trainIds['vowel_diacritic'].value_counts().shape
+trainIds['consonant_diacritic'].value_counts().shape
+
+round(np.sqrt(168) / (np.sqrt(168) + np.sqrt(11) + np.sqrt(7)), 3)
+round(np.sqrt(11) / (np.sqrt(168) + np.sqrt(11) + np.sqrt(7)), 3)
+round(np.sqrt(7) / (np.sqrt(168) + np.sqrt(11) + np.sqrt(7)), 3)
+
 counts = trainIds.groupby(['grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).count()['image_id']
 
 counts.sort_values()
