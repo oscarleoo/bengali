@@ -166,13 +166,13 @@ def add_sample_weights(df):
 
 def get_data_generators(split, batch_size):
 
-    trainIds = pd.read_csv('data/train.csv')
+    df = pd.read_csv('data/train.csv')
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
     train_ids = list(splits[splits['split'] == 'train']['image_id'])
     valid_ids = list(splits[splits['split'] == 'valid']['image_id'])
 
-    train_df = trainIds[trainIds['image_id'].isin(train_ids)].reset_index(drop=True)
-    valid_df = trainIds[trainIds['image_id'].isin(valid_ids)].reset_index(drop=True)
+    train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
+    valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
     train_df = add_sample_weights(train_df)
 
     train_generator = ImageGenerator(train_df, batch_size, True)
