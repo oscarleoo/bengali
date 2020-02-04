@@ -32,29 +32,13 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     model.compile(optimizer=Adam(0.001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=3,
-        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-    )
-
-    print()
-    print('Quick pretraining of head....')
-    print()
-
-    for layer in backbone.layers:
-        layer.trainable = False
-
-    model.compile(optimizer=Adam(0.0001), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
-    history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=3,
+        train_generator, steps_per_epoch=500, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
     )
 
     ###############################
     #   TRAINING
     ###############################
-
-    for layer in backbone.layers:
-        layer.trainable = True
 
     reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)

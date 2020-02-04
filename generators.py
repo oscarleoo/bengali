@@ -11,11 +11,11 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=10, shift_limit=0.1, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.Cutout(num_holes=4, max_h_size=16, max_w_size=16, p=0.5)
-    AA.RandomContrast(limit=0.2, p=0.8)
+    # AA.RandomContrast(limit=0.2, p=0.8)
 ], p=1)
 
 def plot_augmentations():
@@ -23,14 +23,14 @@ def plot_augmentations():
     random_id = np.random.choice(list(IMAGES.keys()))
     image = get_image(random_id)
     plt.figure(figsize=(5, 5))
-    plt.imshow(image, cmap='gray')
+    plt.imshow(crop_and_resize_image(image), cmap='gray')
     plt.show()
 
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
         aug_img = augmentor(image=image.copy())['image']
-        axes[row][col].imshow(aug_img, cmap='gray')
+        axes[row][col].imshow(crop_and_resize_image(aug_img), cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
         if col == 3:
@@ -41,11 +41,14 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
-#plot_augmentations()
+# plot_augmentations()
 
 def get_image(image_id):
+    return IMAGES[image_id].copy()
 
-    image = IMAGES[image_id].copy()
+
+def crop_and_resize_image(image):
+
     sum_axis_0 = image.sum(axis=0) > 0
     sum_axis_1 = image.sum(axis=1) > 0
     image = image[sum_axis_1, :]
@@ -61,10 +64,7 @@ def get_image(image_id):
         diff = int((size - height) / 2)
         image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
 
-    image = cv2.resize(image, (64, 64))
-    image = image - image.min()
-    image = image / image.max()
-    return np.stack([image, image, image], axis=2)
+    return cv2.resize(image, (64, 64))
 
 
 class ImageGenerator(Sequence):
@@ -98,7 +98,10 @@ class ImageGenerator(Sequence):
             x = get_image(image_id)
             if self.is_train:
                 x = augmentor(image=x)['image']
-            X[i] = x
+            x = crop_and_resize_image(x)
+            x = x - x.min()
+            x = x / x.max()
+            X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
