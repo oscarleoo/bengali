@@ -4,32 +4,32 @@ import numpy as np
 import pandas as pd
 from keras.utils import Sequence
 import albumentations as AA
+import matplotlib.pyplot as plt
 
 IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.08, rotate_limit=10, shift_limit=0.08, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.5, p=0.8),
-    AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8),
-    AA.RandomContrast(limit=0.5, always_apply=True)
+    AA.ShiftScaleRotate(scale_limit=0.02, rotate_limit=10, shift_limit=0.02, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.RandomContrast(limit=0.1, p=0.6),
+    AA.Cutout(num_holes=8, max_h_size=8, max_w_size=8, p=0.5)
 ], p=1)
-
-
-import matplotlib.pyplot as plt
 
 def plot_augmentations():
 
     random_id = np.random.choice(list(IMAGES.keys()))
+    image = get_image(random_id)
     plt.figure(figsize=(5, 5))
-    plt.imshow(IMAGES[random_id], cmap='gray')
+    plt.imshow(image, cmap='gray')
     plt.show()
 
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
-        aug_img = augmentor(image=IMAGES[random_id].copy())['image']
+        aug_img = augmentor(image=image.copy())['image']
         axes[row][col].imshow(aug_img, cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
@@ -41,12 +41,31 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
+
 def get_image(image_id):
 
-    x = IMAGES[image_id]
-    x = x - x.min()
-    x = x / x.max()
-    return np.expand_dims(x, 2)
+    image = IMAGES[image_id].copy()
+    sum_axis_0 = image.sum(axis=0) > 0
+    sum_axis_1 = image.sum(axis=1) > 0
+    image = image[sum_axis_1, :]
+    image = image[:, sum_axis_0]
+
+    height, width = image.shape[:2]
+    size = max([width, height])
+
+    if width < size:
+        diff = int((size - width) / 2)
+        image = np.concatenate([np.zeros((height, diff)), image, np.zeros((height, diff))], axis=1)
+    if height < size:
+        diff = int((size - height) / 2)
+        image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
+
+    image = cv2.resize(image, (64, 64))
+    image = image - image.min()
+    image = image / np.percentile(image, 95)
+    image = image.clip(0, 1)
+    return np.stack([image, image, image], axis=2)
+
 
 class ImageGenerator(Sequence):
 
@@ -62,7 +81,7 @@ class ImageGenerator(Sequence):
 
         batch_ids = self.ids[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 1))
+        X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
