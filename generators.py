@@ -69,24 +69,32 @@ def get_image(image_id):
 
 class ImageGenerator(Sequence):
 
-    def __init__(self, ids, batch_size, is_train):
-        self.ids = ids
+    def __init__(self, images, batch_size, is_train):
+        self.images = images
         self.batch_size = batch_size
         self.is_train = is_train
 
     def __len__(self):
-        return int(len(self.ids) / self.batch_size)
+        return int(len(self.images) / self.batch_size)
 
     def __getitem__(self, idx):
 
-        batch_ids = self.ids[idx * self.batch_size : (idx+1) * self.batch_size]
+        if self.is_train:
+            batch_images = pd.concat([
+                self.images.sample(n=90, weights='grapheme_root_weight', replace=True),
+                self.images.sample(n=19, weights='vowel_diacritic_weight', replace=True),
+                self.images.sample(n=19, weights='consonant_diacritic_weight', replace=True)
+            ])
+        else:
+            batch_images = list(self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id'])
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
 
-        for i, image_id in enumerate(batch_ids):
+        for i, row in batch_images.reset_index().iterrows():
+            image_id = row['image_id']
             x = get_image(image_id)
             if self.is_train:
                 x = augmentor(image=x)['image']
@@ -103,9 +111,7 @@ class ImageGenerator(Sequence):
 
     def on_epoch_end(self):
         if self.is_train:
-            ids = [id_ for id_ in self.ids]
-            np.random.shuffle(ids)
-            self.ids = ids
+            self.images = self.images.sample(frac=1)
 
     def make_predictions(self, model):
         grapheme_root_predictions = []
@@ -130,8 +136,43 @@ class ImageGenerator(Sequence):
             self.ids, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
 
+def add_sample_weights(df):
+
+    grapheme_root_counts = df['grapheme_root'].value_counts()
+    grapheme_root_counts = grapheme_root_counts.sum() / grapheme_root_counts
+    grapheme_root_counts = grapheme_root_counts + len(grapheme_root_counts)
+    grapheme_root_counts = grapheme_root_counts.round().reset_index()
+    grapheme_root_counts.columns = ['grapheme_root', 'grapheme_root_weight']
+
+    vowel_diacritic_counts = df['vowel_diacritic'].value_counts()
+    vowel_diacritic_counts = vowel_diacritic_counts.sum() / vowel_diacritic_counts
+    vowel_diacritic_counts = vowel_diacritic_counts + len(vowel_diacritic_counts)
+    vowel_diacritic_counts = vowel_diacritic_counts.round().reset_index()
+    vowel_diacritic_counts.columns = ['vowel_diacritic', 'vowel_diacritic_weight']
+
+    consonant_diacritic_counts = df['consonant_diacritic'].value_counts()
+    consonant_diacritic_counts = consonant_diacritic_counts.sum() / consonant_diacritic_counts
+    consonant_diacritic_counts = consonant_diacritic_counts + len(consonant_diacritic_counts)
+    consonant_diacritic_counts = consonant_diacritic_counts.round().reset_index()
+    consonant_diacritic_counts.columns = ['consonant_diacritic', 'consonant_diacritic_weight']
+
+    df = df.merge(grapheme_root_counts, on='grapheme_root', how='left')
+    df = df.merge(vowel_diacritic_counts, on='vowel_diacritic', how='left')
+    df = df.merge(consonant_diacritic_counts, on='consonant_diacritic', how='left')
+
+    return df
+
 def get_data_generators(split, batch_size):
+
+    trainIds = pd.read_csv('data/train.csv')
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
-    train_generator = ImageGenerator(list(splits[splits['split'] == 'train']['image_id']), 128, True)
-    valid_generator = ImageGenerator(list(splits[splits['split'] == 'valid']['image_id']), 128, False)
+    train_ids = list(splits[splits['split'] == 'train']['image_id'])
+    valid_ids = list(splits[splits['split'] == 'valid']['image_id'])
+
+    train_df = trainIds[trainIds['image_id'].isin(train_ids)]
+    valid_df = trainIds[trainIds['image_id'].isin(valid_ids)]
+    train_df = add_sample_weights(train_df)
+
+    train_generator = ImageGenerator(train_df, batch_size, True)
+    valid_generator = ImageGenerator(valid_df, batch_size, False)
     return train_generator, valid_generator
