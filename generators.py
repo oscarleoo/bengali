@@ -87,7 +87,7 @@ class ImageGenerator(Sequence):
                 self.images.sample(n=19, weights='consonant_diacritic_weight', replace=True)
             ])
         else:
-            batch_images = list(self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id'])
+            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
@@ -163,6 +163,7 @@ def add_sample_weights(df):
 
     return df
 
+
 def get_data_generators(split, batch_size):
 
     trainIds = pd.read_csv('data/train.csv')
@@ -170,8 +171,8 @@ def get_data_generators(split, batch_size):
     train_ids = list(splits[splits['split'] == 'train']['image_id'])
     valid_ids = list(splits[splits['split'] == 'valid']['image_id'])
 
-    train_df = trainIds[trainIds['image_id'].isin(train_ids)]
-    valid_df = trainIds[trainIds['image_id'].isin(valid_ids)]
+    train_df = trainIds[trainIds['image_id'].isin(train_ids)].reset_index(drop=True)
+    valid_df = trainIds[trainIds['image_id'].isin(valid_ids)].reset_index(drop=True)
     train_df = add_sample_weights(train_df)
 
     train_generator = ImageGenerator(train_df, batch_size, True)
