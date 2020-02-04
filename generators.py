@@ -15,6 +15,7 @@ augmentor = AA.Compose([
     # AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.Cutout(num_holes=4, max_h_size=16, max_w_size=16, p=0.5)
+    AA.RandomContrast(limit=0.2, p=0.8)
 ], p=1)
 
 def plot_augmentations():
