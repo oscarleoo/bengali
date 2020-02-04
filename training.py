@@ -29,7 +29,6 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=3,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[reduce_lr, early_stopping]
     )
 
     for layer in backbone.layers:
