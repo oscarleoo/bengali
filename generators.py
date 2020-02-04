@@ -11,11 +11,10 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.02, rotate_limit=10, shift_limit=0.02, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.RandomContrast(limit=0.1, p=0.6),
-    AA.Cutout(num_holes=8, max_h_size=8, max_w_size=8, p=0.5)
+    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=10, shift_limit=0.1, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.OpticalDistortion(distort_limit=0.5, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.GridDistortion(num_steps=5, distort_limit=0.2, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.Cutout(num_holes=4, max_h_size=16, max_w_size=16, p=0.5)
 ], p=1)
 
 def plot_augmentations():
@@ -41,6 +40,7 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
+plot_augmentations()
 
 def get_image(image_id):
 
@@ -62,7 +62,7 @@ def get_image(image_id):
 
     image = cv2.resize(image, (64, 64))
     image = image - image.min()
-    image = image / np.percentile(image, 95)
+    image = image / np.percentile(image, 99)
     image = image.clip(0, 1)
     return np.stack([image, image, image], axis=2)
 
