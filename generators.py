@@ -64,7 +64,6 @@ def get_image(image_id):
     image = cv2.resize(image, (64, 64))
     image = image - image.min()
     image = image / image.max()
-    image = image.clip(0, 1)
     return np.stack([image, image, image], axis=2)
 
 
