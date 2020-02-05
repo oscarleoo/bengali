@@ -159,14 +159,14 @@ class MultiOutputImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        # if self.is_train:
-        #     batch_images = pd.concat([
-        #         self.images.sample(n=90, weights='grapheme_root_weight'),
-        #         self.images.sample(n=19, weights='vowel_diacritic_weight'),
-        #         self.images.sample(n=19, weights='consonant_diacritic_weight')
-        #     ])
-        # else:
-        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+        if self.is_train:
+            batch_images = pd.concat([
+                self.images.sample(n=40, weights='grapheme_root_weight'),
+                self.images.sample(n=12, weights='vowel_diacritic_weight'),
+                self.images.sample(n=12, weights='consonant_diacritic_weight')
+            ])
+        else:
+            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
@@ -194,6 +194,15 @@ class MultiOutputImageGenerator(Sequence):
         if self.is_train:
             self.images = self.images.sample(frac=1)
 
+    def update_weights(self, gr_weights, vc_weights, cd_weights):
+        self.images = self.images.drop([
+            'grapheme_root_weight', 'vowel_diacritic_weight', 'consonant_diacritic_weight'
+        ], axis=1)
+
+        self.images = self.images.merge(gr_weights, on='grapheme_root', how='left')
+        self.images = self.images.merge(vc_weights, on='vowel_diacritic', how='left')
+        self.images = self.images.merge(cd_weights, on='consonant_diacritic', how='left')
+
     def make_predictions(self, model):
         grapheme_root_predictions = []
         vowel_diacritic_predictions = []
@@ -219,41 +228,32 @@ class MultiOutputImageGenerator(Sequence):
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
-    def recall(self, model):
-        predictions = self.make_predictions(model).sort_index()
-        validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
-        scores = []
-        for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
-            y_true_subset = validIds[component].values.astype(int)
-            y_pred_subset = predictions[component].values.astype(int)
-            scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
-        return round(np.average(scores, weights=[2,1,1]), 5)
 
-def add_sample_weights(df):
-
-    grapheme_root_counts = df['grapheme_root'].value_counts()
-    grapheme_root_counts = grapheme_root_counts.sum() / grapheme_root_counts
-    grapheme_root_counts = grapheme_root_counts + len(grapheme_root_counts)
-    grapheme_root_counts = grapheme_root_counts.round().reset_index()
-    grapheme_root_counts.columns = ['grapheme_root', 'grapheme_root_weight']
-
-    vowel_diacritic_counts = df['vowel_diacritic'].value_counts()
-    vowel_diacritic_counts = vowel_diacritic_counts.sum() / vowel_diacritic_counts
-    vowel_diacritic_counts = vowel_diacritic_counts + len(vowel_diacritic_counts)
-    vowel_diacritic_counts = vowel_diacritic_counts.round().reset_index()
-    vowel_diacritic_counts.columns = ['vowel_diacritic', 'vowel_diacritic_weight']
-
-    consonant_diacritic_counts = df['consonant_diacritic'].value_counts()
-    consonant_diacritic_counts = consonant_diacritic_counts.sum() / consonant_diacritic_counts
-    consonant_diacritic_counts = consonant_diacritic_counts + len(consonant_diacritic_counts)
-    consonant_diacritic_counts = consonant_diacritic_counts.round().reset_index()
-    consonant_diacritic_counts.columns = ['consonant_diacritic', 'consonant_diacritic_weight']
-
-    df = df.merge(grapheme_root_counts, on='grapheme_root', how='left')
-    df = df.merge(vowel_diacritic_counts, on='vowel_diacritic', how='left')
-    df = df.merge(consonant_diacritic_counts, on='consonant_diacritic', how='left')
-
-    return df
+# def add_sample_weights(df):
+#
+#     grapheme_root_counts = df['grapheme_root'].value_counts()
+#     grapheme_root_counts = grapheme_root_counts.sum() / grapheme_root_counts
+#     grapheme_root_counts = grapheme_root_counts + len(grapheme_root_counts)
+#     grapheme_root_counts = grapheme_root_counts.round().reset_index()
+#     grapheme_root_counts.columns = ['grapheme_root', 'grapheme_root_weight']
+#
+#     vowel_diacritic_counts = df['vowel_diacritic'].value_counts()
+#     vowel_diacritic_counts = vowel_diacritic_counts.sum() / vowel_diacritic_counts
+#     vowel_diacritic_counts = vowel_diacritic_counts + len(vowel_diacritic_counts)
+#     vowel_diacritic_counts = vowel_diacritic_counts.round().reset_index()
+#     vowel_diacritic_counts.columns = ['vowel_diacritic', 'vowel_diacritic_weight']
+#
+#     consonant_diacritic_counts = df['consonant_diacritic'].value_counts()
+#     consonant_diacritic_counts = consonant_diacritic_counts.sum() / consonant_diacritic_counts
+#     consonant_diacritic_counts = consonant_diacritic_counts + len(consonant_diacritic_counts)
+#     consonant_diacritic_counts = consonant_diacritic_counts.round().reset_index()
+#     consonant_diacritic_counts.columns = ['consonant_diacritic', 'consonant_diacritic_weight']
+#
+#     df = df.merge(grapheme_root_counts, on='grapheme_root', how='left')
+#     df = df.merge(vowel_diacritic_counts, on='vowel_diacritic', how='left')
+#     df = df.merge(consonant_diacritic_counts, on='consonant_diacritic', how='left')
+#
+#     return df
 
 
 def get_data_generators(split, batch_size):
@@ -265,7 +265,9 @@ def get_data_generators(split, batch_size):
 
     train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
     valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
-    train_df = add_sample_weights(train_df)
+    train_df['grapheme_root_weight'] = 1
+    train_df['vowel_diacritic_weight'] = 1
+    train_df['consonant_diacritic_weight'] = 1
 
     train_generator = MultiOutputImageGenerator(train_df, batch_size, True)
     valid_generator = MultiOutputImageGenerator(valid_df, batch_size, False)
