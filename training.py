@@ -13,17 +13,17 @@ def weighted_recall(y_true, y_pred):
 
     gr_pred = K.argmax(y_pred[:, :168], axis=0)
     gr_true = K.argmax(y_true[:, :168], axis=0)
-    gr_recall = K.sum(K.cast(K.equal(gr_pred, gr_true), dtype='int64')) / 64
+    gr_recall = K.mean(K.equal(gr_pred, gr_true))
 
     vc_pred = K.argmax(y_pred[:, 168:179], axis=0)
     vc_true = K.argmax(y_true[:, 168:179], axis=0)
-    vc_recall = K.sum(K.cast(K.equal(vc_pred, vc_true), dtype='int64')) / 64
+    vc_recall = K.mean(K.equal(vc_pred, vc_true))
 
     cd_pred = K.argmax(y_pred[:, 179:], axis=0)
     cd_true = K.argmax(y_true[:, 179:], axis=0)
-    cd_recall = K.sum(K.cast(K.equal(cd_pred, cd_true), dtype='int64')) / 64
+    cd_recall = K.mean(K.equal(cd_pred, cd_true))
 
-    return (2 * gr_recall + vc_recall + cd_recall) / 4
+    return gr_recall
 
 
 def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
