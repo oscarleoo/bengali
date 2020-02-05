@@ -11,11 +11,11 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=10, shift_limit=0.05, always_apply=True, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.OpticalDistortion(distort_limit=0.1, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.Cutout(num_holes=4, max_h_size=16, max_w_size=16, p=0.5)
-    # AA.RandomContrast(limit=0.2, p=0.8)
+    # AA.RandomContrast(limit=0.4, p=0.8)
 ], p=1)
 
 def plot_augmentations():
@@ -41,7 +41,7 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
-# plot_augmentations()
+plot_augmentations()
 
 def get_image(image_id):
     return IMAGES[image_id].copy()
@@ -49,20 +49,20 @@ def get_image(image_id):
 
 def crop_and_resize_image(image):
 
-    sum_axis_0 = image.sum(axis=0) > 0
-    sum_axis_1 = image.sum(axis=1) > 0
-    image = image[sum_axis_1, :]
-    image = image[:, sum_axis_0]
-
-    height, width = image.shape[:2]
-    size = max([width, height])
-
-    if width < size:
-        diff = int((size - width) / 2)
-        image = np.concatenate([np.zeros((height, diff)), image, np.zeros((height, diff))], axis=1)
-    if height < size:
-        diff = int((size - height) / 2)
-        image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
+    # sum_axis_0 = image.sum(axis=0) > 0
+    # sum_axis_1 = image.sum(axis=1) > 0
+    # image = image[sum_axis_1, :]
+    # image = image[:, sum_axis_0]
+    #
+    # height, width = image.shape[:2]
+    # size = max([width, height])
+    #
+    # if width < size:
+    #     diff = int((size - width) / 2)
+    #     image = np.concatenate([np.zeros((height, diff)), image, np.zeros((height, diff))], axis=1)
+    # if height < size:
+    #     diff = int((size - height) / 2)
+    #     image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
 
     image = cv2.resize(image, (64, 64))
     image = image - image.min()
@@ -83,14 +83,14 @@ class ImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        if self.is_train:
-            batch_images = pd.concat([
-                self.images.sample(n=90, weights='grapheme_root_weight'),
-                self.images.sample(n=19, weights='vowel_diacritic_weight'),
-                self.images.sample(n=19, weights='consonant_diacritic_weight')
-            ])
-        else:
-            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+        # if self.is_train:
+        #     batch_images = pd.concat([
+        #         self.images.sample(n=90, weights='grapheme_root_weight'),
+        #         self.images.sample(n=19, weights='vowel_diacritic_weight'),
+        #         self.images.sample(n=19, weights='consonant_diacritic_weight')
+        #     ])
+        # else:
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
