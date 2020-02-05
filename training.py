@@ -41,7 +41,6 @@ class WeightedRecall(Callback):
         self.valid = valid
 
     def on_epoch_end(self, batch, logs={}):
-        print(self.train.images.head())
         predictions = self.valid.make_predictions(self.model).sort_index()
         validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
         gr_weights = calculate_class_weights(validIds, predictions, 'grapheme_root', 1/168)
