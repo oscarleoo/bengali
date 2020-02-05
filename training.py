@@ -17,7 +17,7 @@ def calculate_class_weights(y_true, y_pred, title, alpha):
         y_pred[title].values.astype(int)
     )
     true_positives = MCM[:, 1, 1]
-    true_sum = tp_sum + MCM[:, 1, 0]
+    true_sum = true_positives + MCM[:, 1, 0]
     class_recall = (true_positives / true_sum) + alpha
     class_recall = 1 / class_recall
     class_recall = class_recall / class_recall.sum()
