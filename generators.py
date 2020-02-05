@@ -97,8 +97,8 @@ class ImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
             x = get_image(image_id)
-            # if self.is_train:
-            #     x = augmentor(image=x)['image']
+            if self.is_train:
+                x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y = [0 for i in range(168)]

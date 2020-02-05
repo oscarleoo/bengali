@@ -9,6 +9,27 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 from generators import get_data_generators
 
+import keras.backend as K
+
+# hmm1 = K.random_normal((10, 5))
+# hmm2 = K.zeros((10, 5))
+#
+# hmm1
+# K.max(hmm1, axis=0)
+# K.stack([K.max(hmm1, axis=0) for i in range(10)])
+# hmm2.shape
+# K.flatten(K.equal(hmm1, K.stack([K.max(hmm1, axis=0) for i in range(10)])))
+
+def weighted_recall(y_true, y_pred):
+
+    gr_pred = K.cast(K.flatten(K.equal(y_pred[:, :168], K.stack([K.max(y_pred[:, :168], axis=0) for i in range(64)]))), dtype='float32')
+    gr_true = K.flatten(y_true)
+
+    true_positives = K.sum(gr_pred * gr_true)
+
+    return true_positives / K.sum(gr_true)
+
+
 def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
 
     model, backbone = backbone_function()
@@ -32,7 +53,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Pretraining full network with lr=0.000001 and lr=0.001...')
     print()
 
-    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy', metrics=[weighted_recall])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
