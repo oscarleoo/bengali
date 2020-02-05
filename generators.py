@@ -5,6 +5,7 @@ import pandas as pd
 from keras.utils import Sequence
 import albumentations as AA
 import matplotlib.pyplot as plt
+from sklearn.metrics import recall_score
 
 IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
@@ -110,6 +111,41 @@ class ImageGenerator(Sequence):
             Y[i] = np.array(grapheme_root_Y + vowel_diacritic_Y + consonant_diacritic_Y)
 
         return X, Y
+
+    def make_predictions(self, model):
+        grapheme_root_predictions = []
+        vowel_diacritic_predictions = []
+        consonant_diacritic_predictions = []
+        images = []
+        for image_id in self.images['image_id']:
+            image = crop_and_resize_image(get_image(image_id))
+            image = np.stack([image, image, image], axis=2)
+            images.append(image)
+            if len(images) == 512:
+                predictions = model.predict(np.array(images))
+                grapheme_root_predictions.extend(predictions[:, :168].argmax(axis=1))
+                vowel_diacritic_predictions.extend(predictions[:, 168:179].argmax(axis=1))
+                consonant_diacritic_predictions.extend(predictions[:, 179:].argmax(axis=1))
+                images = []
+        predictions = model.predict(np.array(images))
+        grapheme_root_predictions.extend(predictions[:, :168].argmax(axis=1))
+        vowel_diacritic_predictions.extend(predictions[:, 168:179].argmax(axis=1))
+        consonant_diacritic_predictions.extend(predictions[:, 179:].argmax(axis=1))
+        return pd.DataFrame([
+            self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
+        ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
+
+    def recall(self, model):
+        predictions = self.make_predictions(model)
+        validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
+        scores = []
+        for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
+            y_true_subset = validIds[component].values.astype(int)
+            y_pred_subset = predictions[component].values.astype(int)
+            scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
+        return round(np.average(scores, weights=[2,1,1]), 5)
+
+
 
 class MultiOutputImageGenerator(Sequence):
 

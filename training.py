@@ -5,30 +5,24 @@ import pandas as pd
 import keras.backend as K
 from sklearn.metrics import recall_score
 from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
 from generators import get_data_generators
 
+class WeightedRecall(Callback):
 
-def weighted_recall(y_true, y_pred):
+    def __init__(self, generator):
+        self.generator = generator
 
-    gr_pred = K.argmax(y_pred[:, :168], axis=0)
-    gr_true = K.argmax(y_true[:, :168], axis=0)
-    gr_recall = K.mean(K.equal(gr_pred, gr_true))
-
-    vc_pred = K.argmax(y_pred[:, 168:179], axis=0)
-    vc_true = K.argmax(y_true[:, 168:179], axis=0)
-    vc_recall = K.mean(K.equal(vc_pred, vc_true))
-
-    cd_pred = K.argmax(y_pred[:, 179:], axis=0)
-    cd_true = K.argmax(y_true[:, 179:], axis=0)
-    cd_recall = K.mean(K.equal(cd_pred, cd_true))
-
-    return gr_recall
+    def on_epoch_end(self, batch, logs={}):
+        score = self.generator.recall(self.model)
+        print(score)
+        return
 
 
 def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
 
     model, backbone = backbone_function()
+    weighted_recall = WeightedRecall(valid_generator)
     # model = connect_head_function(backbone, backbone_output)
 
     # loss = {
@@ -49,10 +43,11 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Pretraining full network with lr=0.000001 and lr=0.001...')
     print()
 
-    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy', metrics=[weighted_recall])
+    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy')
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
+        callbacks=[weighted_recall]
     )
     with open('{}/{}_pretrain_history'.format(training_path, title), 'wb') as f:
         pickle.dump(history.history, f)
@@ -68,11 +63,11 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Training full algorithm with early stoppping and decay')
     print()
 
-    model.compile(optimizer=Adam(0.0001), loss='binary_crossentropy', metrics=[weighted_recall])
+    model.compile(optimizer=Adam(0.0001), loss='binary_crossentropy')
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[reduce_lr, early_stopping]
+        callbacks=[weighted_recall, reduce_lr, early_stopping]
     )
 
     with open('{}/{}_full_train'.format(training_path, title), 'wb') as f:
@@ -85,11 +80,11 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     for layer in backbone.layers:
         layer.trainable = False
 
-    model.compile(optimizer=Adam(lr=0.0001), loss='binary_crossentropy', metrics=[weighted_recall])
+    model.compile(optimizer=Adam(lr=0.0001), loss='binary_crossentropy')
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[reduce_lr, early_stopping]
+        callbacks=[weighted_recall, reduce_lr, early_stopping]
     )
 
     with open('{}/{}_head_train'.format(training_path, title), 'wb') as f:

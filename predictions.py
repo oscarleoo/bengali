@@ -18,9 +18,6 @@ with open("results/b1_simpe/model.json", "w") as json_file:
 
 model.load_weights('results/b1_simple/final_step_weights.h5')
 predictions = valid_generator.make_predictions(model)
-predictions.head()
-predictions.columns = ['grapheme_root', 'vowel_diacritic', 'consonant_diacritic']
-import pandas as pd
 trainIds = pd.read_csv('data/train.csv').set_index('image_id')
 trainIds.head()
 
