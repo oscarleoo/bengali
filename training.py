@@ -29,7 +29,7 @@ def calculate_recall(y_true, y_pred):
     scores = []
     for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
         y_true_subset = y_true[component].values.astype(int)
-        y_pred_subset = predictions[component].values.astype(int)
+        y_pred_subset = y_pred[component].values.astype(int)
         scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
     return round(np.average(scores, weights=[2,1,1]), 5)
 
@@ -41,18 +41,15 @@ class WeightedRecall(Callback):
         self.valid = valid
 
     def on_epoch_end(self, batch, logs={}):
-
         print(self.train.images.head())
-
         predictions = self.valid.make_predictions(self.model).sort_index()
         validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
-        score = calculate_recall(validIds, predictions)
-        print('==> Weighted Recal Score:', score)
-
         gr_weights = calculate_class_weights(validIds, predictions, 'grapheme_root', 0.1)
         vc_weights = calculate_class_weights(validIds, predictions, 'vowel_diacritic', 0.1)
         cd_weights = calculate_class_weights(validIds, predictions, 'consonant_diacritic', 0.1)
         self.train.update_weights(gr_weights, vc_weights, cd_weights)
+        score = calculate_recall(validIds, predictions)
+        print('==> Weighted Recal Score:', score)
         return
 
 
