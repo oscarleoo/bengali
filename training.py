@@ -30,15 +30,9 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Pretraining full network with lr=0.000001 and lr=0.001...')
     print()
 
-    model.compile(optimizer=Adam(0.0000001), loss=loss, metrics=['categorical_accuracy'])
-    history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=2,
-        validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-    )
-
     model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=3,
+        train_generator, steps_per_epoch=500, epochs=4,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
     )
     with open('{}/{}_pretrain_history'.format(training_path, title), 'wb') as f:
