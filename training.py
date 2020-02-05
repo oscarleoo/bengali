@@ -23,11 +23,9 @@ import keras.backend as K
 def weighted_recall(y_true, y_pred):
 
     gr_pred = K.cast(K.flatten(K.equal(y_pred[:, :168], K.stack([K.max(y_pred[:, :168], axis=0) for i in range(64)]))), dtype='float32')
-    gr_true = K.flatten(y_true)
+    gr_true = K.flatten(y_true[:, :168])
 
-    true_positives = K.sum(gr_pred * gr_true)
-
-    return true_positives / K.sum(gr_true)
+    return K.sum(gr_pred * gr_true) / K.sum(gr_true)
 
 
 def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
