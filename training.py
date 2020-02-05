@@ -28,7 +28,7 @@ def calculate_class_weights(y_true, y_pred, title, alpha):
 def calculate_recall(y_true, y_pred):
     scores = []
     for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
-        y_true_subset = validIds[component].values.astype(int)
+        y_true_subset = y_true[component].values.astype(int)
         y_pred_subset = predictions[component].values.astype(int)
         scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
     return round(np.average(scores, weights=[2,1,1]), 5)
