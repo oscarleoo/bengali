@@ -9,7 +9,7 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 from generators import get_data_generators
 
-def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path):
+def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
 
     backbone, backbone_output = backbone_function()
     model = connect_head_function(backbone, backbone_output)
@@ -35,6 +35,8 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         train_generator, steps_per_epoch=500, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
     )
+    with open('{}/{}_pretrain_history'.format(training_path, title), 'wb') as f:
+        pickle.dump(history.history, f)
 
     ###############################
     #   TRAINING
@@ -54,7 +56,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         callbacks=[reduce_lr, early_stopping]
     )
 
-    with open('{}/pretrain_history'.format(training_path), 'wb') as f:
+    with open('{}/{}_full_train'.format(training_path, title), 'wb') as f:
         pickle.dump(history.history, f)
 
     #
@@ -71,7 +73,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         callbacks=[reduce_lr, early_stopping]
     )
 
-    with open('{}/final_step'.format(training_path), 'wb') as f:
+    with open('{}/{}_head_train'.format(training_path, title), 'wb') as f:
         pickle.dump(history.history, f)
 
-    model.save('{}/model.h5')
+    model.save('{}/model.h5'.format(training_path))
