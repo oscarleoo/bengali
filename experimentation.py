@@ -67,3 +67,15 @@ trainIds.sample(n=1000, weights='vowel_diacritic_weight', replace=True)
 
 train_ids
 np.sqrt(168)
+
+
+import pickle
+
+with open('results/b1_simple/final_step', 'rb') as f:
+    hmm = pickle.load(f)
+
+hmm
+
+max(hmm['val_grapheme_root_categorical_accuracy'])
+max(hmm['val_vowel_diacritic_categorical_accuracy'])
+max(hmm['val_consonant_diacritic_categorical_accuracy'])
