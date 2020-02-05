@@ -60,7 +60,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     backbone, backbone_output = backbone_function()
     model = connect_head_function(backbone, backbone_output)
-    weighted_recall = WeightedRecall(valid_generator)
+    weighted_recall = WeightedRecall(train_generator, valid_generator)
 
     loss = {
     	'grapheme_root': 'categorical_crossentropy',
