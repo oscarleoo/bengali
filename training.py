@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import keras.backend as K
-from sklearn.metrics import recall_score
+from sklearn.metrics import recall_score, multilabel_confusion_matrix
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
 from generators import get_data_generators
