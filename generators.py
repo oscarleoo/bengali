@@ -41,7 +41,7 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
-plot_augmentations()
+# plot_augmentations()
 
 def get_image(image_id):
     return IMAGES[image_id].copy()
