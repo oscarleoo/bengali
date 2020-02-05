@@ -92,7 +92,7 @@ class ImageGenerator(Sequence):
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
-        grapheme_root_Y = np.zeros((self.batch_size, 168 + 11 + 7))
+        Y = np.zeros((self.batch_size, 168 + 11 + 7))
 
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
