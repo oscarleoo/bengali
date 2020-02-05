@@ -70,8 +70,48 @@ def crop_and_resize_image(image):
     # image = image.clip(0, 1)
     return image
 
-
 class ImageGenerator(Sequence):
+
+    def __init__(self, images, batch_size, is_train):
+        self.images = images
+        self.batch_size = batch_size
+        self.is_train = is_train
+
+    def __len__(self):
+        return int(len(self.images) / self.batch_size)
+
+    def __getitem__(self, idx):
+
+        # if self.is_train:
+        #     batch_images = pd.concat([
+        #         self.images.sample(n=90, weights='grapheme_root_weight'),
+        #         self.images.sample(n=19, weights='vowel_diacritic_weight'),
+        #         self.images.sample(n=19, weights='consonant_diacritic_weight')
+        #     ])
+        # else:
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+
+        X = np.zeros((self.batch_size, 64, 64, 3))
+        grapheme_root_Y = np.zeros((self.batch_size, 168 + 11 + 7))
+
+        for i, row in batch_images.reset_index().iterrows():
+            image_id = row['image_id']
+            x = get_image(image_id)
+            # if self.is_train:
+            #     x = augmentor(image=x)['image']
+            x = crop_and_resize_image(x)
+            X[i] = np.stack([x, x, x], axis=2)
+            grapheme_root_Y = [0 for i in range(168)]
+            vowel_diacritic_Y = [0 for i in range(11)]
+            consonant_diacritic_Y = [0 for i in range(7)]
+            grapheme_root_Y[trainIds.loc[image_id]['grapheme_root']] = 1
+            vowel_diacritic_Y[trainIds.loc[image_id]['vowel_diacritic']] = 1
+            consonant_diacritic_Y[trainIds.loc[image_id]['consonant_diacritic']] = 1
+            Y[i] = np.array(grapheme_root_Y + vowel_diacritic_Y + consonant_diacritic_Y)
+
+        return X, Y
+
+class MultiOutputImageGenerator(Sequence):
 
     def __init__(self, images, batch_size, is_train):
         self.images = images

@@ -14,13 +14,15 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     backbone, backbone_output = backbone_function()
     model = connect_head_function(backbone, backbone_output)
 
-    loss = {
-    	'grapheme_root': 'categorical_crossentropy',
-    	'vowel_diacritic': 'categorical_crossentropy',
-        'consonant_diacritic': 'categorical_crossentropy'
-    }
+    # loss = {
+    # 	'grapheme_root': 'categorical_crossentropy',
+    # 	'vowel_diacritic': 'categorical_crossentropy',
+    #     'consonant_diacritic': 'categorical_crossentropy'
+    # }
 
-    loss_weights = {'grapheme_root': 0.685, 'vowel_diacritic': 0.175, 'consonant_diacritic': 0.14}
+    #loss_weights = {'grapheme_root': 0.685, 'vowel_diacritic': 0.175, 'consonant_diacritic': 0.14}
+    # loss_weights = {'grapheme_root': 1, 'vowel_diacritic': 1, 'consonant_diacritic': 1}
+
 
     ###############################
     #   PRETRAINING
@@ -30,7 +32,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Pretraining full network with lr=0.000001 and lr=0.001...')
     print()
 
-    model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
@@ -49,7 +51,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Training full algorithm with early stoppping and decay')
     print()
 
-    model.compile(optimizer=Adam(0.0001), loss=loss, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(0.0001), loss='binary_crossentropy', metrics=['accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
@@ -66,7 +68,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     for layer in backbone.layers:
         layer.trainable = False
 
-    model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(lr=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),

@@ -35,17 +35,17 @@ def connect_simple_head(backbone, backbone_output):
 
     # grapheme_root_head
     # grapheme_root_dense = Dense(64, activation='relu', name='grapheme_root_dense')(backbone_output)
-    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(backbone_output)
+    output = Dense(168 + 11 + 7, activation='sigmoid', name='output')(backbone_output)
 
-    # vowel_diacritic_head
-    # vowel_diacritic_dense = Dense(32, activation='relu', name='vowel_diacritic_dense')(backbone_output)
-    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(backbone_output)
+    # # vowel_diacritic_head
+    # # vowel_diacritic_dense = Dense(32, activation='relu', name='vowel_diacritic_dense')(backbone_output)
+    # vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(backbone_output)
+    #
+    # # consonant_diacritic_head
+    # # consonant_diacritic_dense = Dense(32, activation='relu', name='consonant_diacritic_dense')(backbone_output)
+    # consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(backbone_output)
 
-    # consonant_diacritic_head
-    # consonant_diacritic_dense = Dense(32, activation='relu', name='consonant_diacritic_dense')(backbone_output)
-    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(backbone_output)
-
-    return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
+    return Model(backbone.input, output)
 
 
 def connect_medium_head(backbone, backbone_output):
