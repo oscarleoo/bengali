@@ -136,7 +136,7 @@ class ImageGenerator(Sequence):
         ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
 
     def recall(self, model):
-        predictions = self.make_predictions(model)
+        predictions = self.make_predictions(model).sort_index()
         validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
         scores = []
         for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
@@ -249,7 +249,7 @@ def get_data_generators(split, batch_size):
     df = pd.read_csv('data/train.csv')
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
     train_ids = list(splits[splits['split'] == 'train']['image_id'])
-    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
+    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])[:100]
 
     train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
     valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
