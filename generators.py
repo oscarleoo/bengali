@@ -83,13 +83,13 @@ class ImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        # if self.is_train:
-        #     batch_images = pd.concat([
-        #         self.images.sample(n=90, weights='grapheme_root_weight', replace=True),
-        #         self.images.sample(n=19, weights='vowel_diacritic_weight', replace=True),
-        #         self.images.sample(n=19, weights='consonant_diacritic_weight', replace=True)
-        #     ])
-        # else:
+        if self.is_train:
+            batch_images = pd.concat([
+                self.images.sample(n=90, weights='grapheme_root_weight'),
+                self.images.sample(n=19, weights='vowel_diacritic_weight'),
+                self.images.sample(n=19, weights='consonant_diacritic_weight')
+            ])
+        else:
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
