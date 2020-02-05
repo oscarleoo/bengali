@@ -6,7 +6,7 @@ from keras.models import Model
 def get_b0_backbone():
     backbone = efn.EfficientNetB0(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     global_average = GlobalAveragePooling2D()(backbone.output)
-    backbone_output = Dropout(0.5)(global_average)
+    backbone_output = Dropout(0.2)(global_average)
     return backbone, backbone_output
 
 
@@ -35,7 +35,7 @@ def connect_simple_head(backbone, backbone_output):
 
     # grapheme_root_head
     # grapheme_root_dense = Dense(64, activation='relu', name='grapheme_root_dense')(backbone_output)
-    output = Dense(168 + 11 + 7, activation='sigmoid', name='output')(backbone_output)
+    output = Dense(186, activation='sigmoid', name='output')(backbone_output)
 
     # # vowel_diacritic_head
     # # vowel_diacritic_dense = Dense(32, activation='relu', name='vowel_diacritic_dense')(backbone_output)
