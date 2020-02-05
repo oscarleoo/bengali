@@ -133,7 +133,7 @@ class ImageGenerator(Sequence):
         consonant_diacritic_predictions.extend(predictions[:, 179:].argmax(axis=1))
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
-        ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
+        ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
     def recall(self, model):
         predictions = self.make_predictions(model).sort_index()
