@@ -11,8 +11,8 @@ from generators import get_data_generators
 
 def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
 
-    backbone, backbone_output = backbone_function()
-    model = connect_head_function(backbone, backbone_output)
+    model, backbone = backbone_function()
+    # model = connect_head_function(backbone, backbone_output)
 
     # loss = {
     # 	'grapheme_root': 'categorical_crossentropy',

@@ -7,7 +7,9 @@ def get_b0_backbone():
     backbone = efn.EfficientNetB0(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     global_average = GlobalAveragePooling2D()(backbone.output)
     backbone_output = Dropout(0.2)(global_average)
-    return backbone, backbone_output
+    output = Dense(186, activation='sigmoid', name='output')(backbone_output)
+    model = Model(backbone.input, output)
+    return model, backbone
 
 
 def get_b1_backbone():
