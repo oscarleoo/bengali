@@ -176,8 +176,8 @@ class MultiOutputImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
             x = get_image(image_id)
-            # if self.is_train:
-            #     x = augmentor(image=x)['image']
+            if self.is_train:
+                x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
@@ -199,8 +199,10 @@ class MultiOutputImageGenerator(Sequence):
         vowel_diacritic_predictions = []
         consonant_diacritic_predictions = []
         images = []
-        for image_id in self.ids:
-            images.append(get_image(image_id))
+        for image_id in self.images['image_id']:
+            image = crop_and_resize_image(get_image(image_id))
+            image = np.stack([image, image, image], axis=2)
+            images.append(image)
             if len(images) == 512:
                 predictions = model.predict(np.array(images))
                 predictions = [p.argmax(axis=1) for p in predictions]
@@ -214,8 +216,18 @@ class MultiOutputImageGenerator(Sequence):
         vowel_diacritic_predictions.extend(predictions[1])
         consonant_diacritic_predictions.extend(predictions[2])
         return pd.DataFrame([
-            self.ids, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
-        ], index=['image_id', 'grapheme_root', 'consonant_diacritic', 'vowel_diacritic']).T.set_index('image_id')
+            self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
+        ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
+
+    def recall(self, model):
+        predictions = self.make_predictions(model).sort_index()
+        validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
+        scores = []
+        for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
+            y_true_subset = validIds[component].values.astype(int)
+            y_pred_subset = predictions[component].values.astype(int)
+            scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
+        return round(np.average(scores, weights=[2,1,1]), 5)
 
 def add_sample_weights(df):
 
@@ -249,12 +261,12 @@ def get_data_generators(split, batch_size):
     df = pd.read_csv('data/train.csv')
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
     train_ids = list(splits[splits['split'] == 'train']['image_id'])
-    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
+    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])[:10]
 
     train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
     valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
     train_df = add_sample_weights(train_df)
 
-    train_generator = ImageGenerator(train_df, batch_size, True)
-    valid_generator = ImageGenerator(valid_df, batch_size, False)
+    train_generator = MultiOutputImageGenerator(train_df, batch_size, True)
+    valid_generator = MultiOutputImageGenerator(valid_df, batch_size, False)
     return train_generator, valid_generator

@@ -21,15 +21,15 @@ class WeightedRecall(Callback):
 
 def train_model(train_generator, valid_generator, backbone_function, connect_head_function, training_path, title):
 
-    model, backbone = backbone_function()
+    backbone, backbone_output = backbone_function()
+    model = connect_head_function(backbone, backbone_output)
     weighted_recall = WeightedRecall(valid_generator)
-    # model = connect_head_function(backbone, backbone_output)
 
-    # loss = {
-    # 	'grapheme_root': 'categorical_crossentropy',
-    # 	'vowel_diacritic': 'categorical_crossentropy',
-    #     'consonant_diacritic': 'categorical_crossentropy'
-    # }
+    loss = {
+    	'grapheme_root': 'categorical_crossentropy',
+    	'vowel_diacritic': 'categorical_crossentropy',
+        'consonant_diacritic': 'categorical_crossentropy'
+    }
 
     #loss_weights = {'grapheme_root': 0.685, 'vowel_diacritic': 0.175, 'consonant_diacritic': 0.14}
     # loss_weights = {'grapheme_root': 1, 'vowel_diacritic': 1, 'consonant_diacritic': 1}
@@ -40,12 +40,12 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     ###############################
 
     print()
-    print('Pretraining full network with lr=0.000001 and lr=0.001...')
+    print('Pretraining full network with lr=0.001...')
     print()
 
-    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy')
+    model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=5,
+        train_generator, steps_per_epoch=1, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall]
     )
@@ -63,7 +63,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     print('Training full algorithm with early stoppping and decay')
     print()
 
-    model.compile(optimizer=Adam(0.0001), loss='binary_crossentropy')
+    model.compile(optimizer=Adam(0.0001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
@@ -80,11 +80,12 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     for layer in backbone.layers:
         layer.trainable = False
 
-    model.compile(optimizer=Adam(lr=0.0001), loss='binary_crossentropy')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True, verbose=1)
+    model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[weighted_recall, reduce_lr, early_stopping]
+        callbacks=[weighted_recall, early_stopping]
     )
 
     with open('{}/{}_head_train'.format(training_path, title), 'wb') as f:

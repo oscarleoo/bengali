@@ -22,17 +22,4 @@ Since the training dataset is large, I can't sample based on loss. I plan to sam
 ## Experiments
 
 ### Additional Cropping
-- loss: 0.1620
-- grapheme_root_loss: 0.1073
-- vowel_diacritic_loss: 0.0274
-- consonant_diacritic_loss: 0.0273
-- grapheme_root_categorical_accuracy: 0.9669
-- vowel_diacritic_categorical_accuracy: 0.9925
-- consonant_diacritic_categorical_accuracy: 0.9913
-- val_loss: 0.4134
-- val_grapheme_root_loss: 0.2685
-- val_vowel_diacritic_loss: 0.0759
-- val_consonant_diacritic_loss: 0.0795
-- val_grapheme_root_categorical_accuracy: 0.9266
-- val_vowel_diacritic_categorical_accuracy: 0.9813
-- val_consonant_diacritic_categorical_accuracy: 0.9795
+- Baseline ==> 0.92712
