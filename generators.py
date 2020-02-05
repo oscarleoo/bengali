@@ -90,7 +90,7 @@ class ImageGenerator(Sequence):
                 self.images.sample(n=19, weights='consonant_diacritic_weight')
             ])
         else:
-        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
