@@ -249,7 +249,7 @@ def get_data_generators(split, batch_size):
     df = pd.read_csv('data/train.csv')
     splits = pd.read_csv('splits/{}/split.csv'.format(split))
     train_ids = list(splits[splits['split'] == 'train']['image_id'])
-    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])[:100]
+    valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
 
     train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
     valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
