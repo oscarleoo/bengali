@@ -5,24 +5,19 @@ from sklearn.metrics import recall_score
 from algorithms import get_b0_backbone, get_b1_backbone, connect_simple_head
 from generators import get_data_generators
 from keras.models import load_model
+train_generator.images.shape
 
+(64 * 1000) / 1601699
 
 train_generator, valid_generator = get_data_generators('split1', 64)
-valid_generator.images = valid_generator.images.sample(n=500)
 model = load_model('model.h5')
 predictions = valid_generator.make_predictions(model)
 predictions = predictions.sort_index()
-
 trainIds = pd.read_csv('data/train.csv').set_index('image_id')
 validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
 
 
-validIds.head(5)
-
-predictions.head()
-
-
-from sklearn.metrics import  multilabel_confusion_matrix
+from sklearn.metrics import  multilabel_confusion_matrix, confusion_matrix
 
 def calculate_class_weights(y_true, y_pred, title, alpha):
     MCM = multilabel_confusion_matrix(
@@ -33,17 +28,36 @@ def calculate_class_weights(y_true, y_pred, title, alpha):
     true_sum = true_positives + MCM[:, 1, 0]
     class_recall = (true_positives / true_sum) + alpha
     class_recall = 1 / class_recall
+    # class_recall = class_recall / np.sqrt(true_sum)
     class_recall = class_recall / class_recall.sum()
     class_index = [i for i in range(len(class_recall))]
-    return pd.DataFrame([class_index, class_recall], index=[title, '{}_weight'.format(title)]).T
+    return pd.DataFrame([class_index, class_recall], index=[title, '{}_weight'.format(title)]).T, true_positives, true_sum, MCM
 
-calculate_class_weights(validIds, predictions, 'vowel_diacritic', 0.1)
 
-true_sum
+df, _, _, _ = calculate_class_weights(validIds, predictions, 'grapheme_root', 1/168)
 
-1 / class_recall
 
-tp_sum
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+plt.figure(figsize=(30, 10))
+sns.barplot(x=df['grapheme_root'], y=df['grapheme_root_weight'])
+plt.show()
+
+plt.figure(figsize=(10, 5))
+sns.barplot(x=df['grapheme_root'], y=df['grapheme_root_weight'])
+plt.show()
+
+df
+
+df.sort_values(['grapheme_root_weight'])
+tp[33]
+ts[33]
+
+
+(tp / ts)[33]
+
 true_sum
 pred_sum
 

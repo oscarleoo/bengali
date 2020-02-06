@@ -20,7 +20,7 @@ def calculate_class_weights(y_true, y_pred, title, alpha):
     true_sum = true_positives + MCM[:, 1, 0]
     class_recall = (true_positives / true_sum) + alpha
     class_recall = 1 / class_recall
-    class_recall = class_recall / np.sqrt(true_sum)
+    class_recall = class_recall / (true_sum ** (1/4))
     class_recall = class_recall / class_recall.sum()
     class_index = [i for i in range(len(class_recall))]
     return pd.DataFrame([class_index, class_recall], index=[title, '{}_weight'.format(title)]).T
@@ -28,11 +28,11 @@ def calculate_class_weights(y_true, y_pred, title, alpha):
 
 def calculate_recall(y_true, y_pred):
     scores = []
-    for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
+    for component in ['grapheme_root', 'vowel_diacritic', 'consonant_diacritic']:
         y_true_subset = y_true[component].values.astype(int)
         y_pred_subset = y_pred[component].values.astype(int)
         scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
-    return round(np.average(scores, weights=[2,1,1]), 5)
+    return round(np.average(scores, weights=[2,1,1]), 5), round(scores[0]), round(scores[1]), round(scores[2])
 
 
 class WeightedRecall(Callback):
@@ -48,8 +48,8 @@ class WeightedRecall(Callback):
         vc_weights = calculate_class_weights(validIds, predictions, 'vowel_diacritic', 1/11)
         cd_weights = calculate_class_weights(validIds, predictions, 'consonant_diacritic', 1/7)
         self.train.update_weights(gr_weights, vc_weights, cd_weights)
-        score = calculate_recall(validIds, predictions)
-        print('==> Weighted Recal Score:', score)
+        score, gr_score, vd_score, cd_score = calculate_recall(validIds, predictions)
+        print('==> Weighted Recal Score: {} ({} - {} - {})'.format(score, gr_score, vd_score, cd_score))
         return
 
 
