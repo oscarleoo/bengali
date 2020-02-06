@@ -12,11 +12,11 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.OpticalDistortion(distort_limit=0.1, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=10, shift_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.OpticalDistortion(distort_limit=0.1, shift_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.Cutout(num_holes=4, max_h_size=16, max_w_size=16, p=0.5)
-    # AA.RandomContrast(limit=0.4, p=0.8)
+    AA.RandomContrast(limit=0.2, p=0.8)
 ], p=1)
 
 def plot_augmentations():
