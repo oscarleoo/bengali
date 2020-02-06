@@ -32,7 +32,7 @@ def calculate_recall(y_true, y_pred):
         y_true_subset = y_true[component].values.astype(int)
         y_pred_subset = y_pred[component].values.astype(int)
         scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
-    return round(np.average(scores, weights=[2,1,1]), 5), round(scores[0]), round(scores[1]), round(scores[2])
+    return round(np.average(scores, weights=[2,1,1]), 5), round(scores[0], 5), round(scores[1], 5), round(scores[2], 5)
 
 
 class WeightedRecall(Callback):
