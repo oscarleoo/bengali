@@ -19,9 +19,9 @@ augmentor = AA.Compose([
     AA.RandomContrast(limit=0.2, p=0.8),
 ], p=1)
 
-plt.imshow(IMAGES['Train_12451'], cmap='gray')
+# plt.imshow(IMAGES['Train_12451'], cmap='gray')
 
-plot_augmentations('Train_12451')
+# plot_augmentations('Train_12451')
 
 def plot_augmentations(random_id=None):
     if not random_id:
