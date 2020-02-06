@@ -8,19 +8,10 @@ from keras.models import load_model
 
 
 train_generator, valid_generator = get_data_generators('split1', 64)
-
-backbone, backbone_output = get_b1_backbone()
+valid_generator.images = valid_generator.images.sample(n=500)
 model = load_model('model.h5')
-
-model.save('results/b1_simple/model.h5')
-with open("results/b1_simpe/model.json", "w") as json_file:
-    json_file.write(model_json)
-
-model.load_weights('results/b1_simple/final_step_weights.h5')
 predictions = valid_generator.make_predictions(model)
 predictions = predictions.sort_index()
-
-predictions
 
 trainIds = pd.read_csv('data/train.csv').set_index('image_id')
 validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()

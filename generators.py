@@ -18,9 +18,9 @@ augmentor = AA.Compose([
     AA.RandomContrast(limit=0.2, p=0.8)
 ], p=1)
 
-def plot_augmentations():
-
-    random_id = np.random.choice(list(IMAGES.keys()))
+def plot_augmentations(random_id=None):
+    if not random_id:
+        random_id = np.random.choice(list(IMAGES.keys()))
     image = get_image(random_id)
     plt.figure(figsize=(5, 5))
     plt.imshow(crop_and_resize_image(image.copy()), cmap='gray')
@@ -41,7 +41,6 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
-# plot_augmentations()
 
 def get_image(image_id):
     return IMAGES[image_id].copy()
@@ -49,8 +48,8 @@ def get_image(image_id):
 
 def crop_and_resize_image(image):
 
-    sum_axis_0 = image.sum(axis=0) > 10
-    sum_axis_1 = image.sum(axis=1) > 10
+    sum_axis_0 = image.sum(axis=0) > 100
+    sum_axis_1 = image.sum(axis=1) > 100
     image = image[sum_axis_1, :]
     image = image[:, sum_axis_0]
 
@@ -178,7 +177,7 @@ class MultiOutputImageGenerator(Sequence):
             if self.is_train:
                 x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
-            X[i] = np.stack([x, x, x], axis=2)
+            X[i] = np.stack([x, x > 0.7, x > 0.4], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
@@ -226,33 +225,6 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
-
-
-# def add_sample_weights(df):
-#
-#     grapheme_root_counts = df['grapheme_root'].value_counts()
-#     grapheme_root_counts = grapheme_root_counts.sum() / grapheme_root_counts
-#     grapheme_root_counts = grapheme_root_counts + len(grapheme_root_counts)
-#     grapheme_root_counts = grapheme_root_counts.round().reset_index()
-#     grapheme_root_counts.columns = ['grapheme_root', 'grapheme_root_weight']
-#
-#     vowel_diacritic_counts = df['vowel_diacritic'].value_counts()
-#     vowel_diacritic_counts = vowel_diacritic_counts.sum() / vowel_diacritic_counts
-#     vowel_diacritic_counts = vowel_diacritic_counts + len(vowel_diacritic_counts)
-#     vowel_diacritic_counts = vowel_diacritic_counts.round().reset_index()
-#     vowel_diacritic_counts.columns = ['vowel_diacritic', 'vowel_diacritic_weight']
-#
-#     consonant_diacritic_counts = df['consonant_diacritic'].value_counts()
-#     consonant_diacritic_counts = consonant_diacritic_counts.sum() / consonant_diacritic_counts
-#     consonant_diacritic_counts = consonant_diacritic_counts + len(consonant_diacritic_counts)
-#     consonant_diacritic_counts = consonant_diacritic_counts.round().reset_index()
-#     consonant_diacritic_counts.columns = ['consonant_diacritic', 'consonant_diacritic_weight']
-#
-#     df = df.merge(grapheme_root_counts, on='grapheme_root', how='left')
-#     df = df.merge(vowel_diacritic_counts, on='vowel_diacritic', how='left')
-#     df = df.merge(consonant_diacritic_counts, on='consonant_diacritic', how='left')
-#
-#     return df
 
 
 def get_data_generators(split, batch_size):

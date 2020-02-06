@@ -24,3 +24,4 @@ Since the training dataset is large, I can't sample based on loss. I plan to sam
 ### Additional Cropping
 - Baseline ==> 0.92712
 - Multihead ==> 0.93245 (might be because it trained longer)
+- Multihead + Crop + Percentile ==> 0.94756

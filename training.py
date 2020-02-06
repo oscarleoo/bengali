@@ -78,7 +78,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=5,
+        train_generator, steps_per_epoch=1000, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall]
     )
@@ -89,8 +89,8 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
     #   TRAINING
     ###############################
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=2, min_lr=0.000001, verbose=1)
+    early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=3, restore_best_weights=True, verbose=1)
 
     print()
     print('Training full algorithm with early stoppping and decay')
@@ -98,7 +98,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     model.compile(optimizer=Adam(0.0001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=500, epochs=1000,
+        train_generator, steps_per_epoch=1000, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall, reduce_lr, early_stopping]
     )
@@ -114,7 +114,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
         layer.trainable = False
 
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=3, restore_best_weights=True, verbose=1)
-    model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(lr=0.00001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=500, epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
