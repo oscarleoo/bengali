@@ -13,7 +13,7 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, p=1, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.ElasticTransform(alpha=1, sigma=10, alpha_affine=10, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.Cutout(num_holes=8, max_h_size=16, max_w_size=16, p=0.5),
     # AA.RandomContrast(limit=0.2, p=0.8),
