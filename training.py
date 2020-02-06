@@ -78,7 +78,7 @@ def train_model(train_generator, valid_generator, backbone_function, connect_hea
 
     model.compile(optimizer=Adam(0.001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=1000, epochs=5,
+        train_generator, steps_per_epoch=500, epochs=5,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall]
     )
