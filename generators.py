@@ -177,7 +177,7 @@ class MultiOutputImageGenerator(Sequence):
             if self.is_train:
                 x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
-            X[i] = np.stack([x, x > 0.7, x > 0.4], axis=2)
+            X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
