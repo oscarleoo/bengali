@@ -169,9 +169,9 @@ class MultiOutputImageGenerator(Sequence):
 
         if self.is_train:
             batch_images = pd.concat([
-                self.images.sample(n=40, weights='grapheme_root_weight'),
-                self.images.sample(n=12, weights='vowel_diacritic_weight'),
-                self.images.sample(n=12, weights='consonant_diacritic_weight')
+                self.images.sample(n=22, weights='grapheme_root_weight'),
+                self.images.sample(n=5, weights='vowel_diacritic_weight'),
+                self.images.sample(n=5, weights='consonant_diacritic_weight')
             ])
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
@@ -220,7 +220,7 @@ class MultiOutputImageGenerator(Sequence):
             image = crop_and_resize_image(get_image(image_id))
             image = np.stack([image, image, image], axis=2)
             images.append(image)
-            if len(images) == 512:
+            if len(images) == 128:
                 predictions = model.predict(np.array(images))
                 predictions = [p.argmax(axis=1) for p in predictions]
                 grapheme_root_predictions.extend(predictions[0])
