@@ -59,17 +59,15 @@ def pretrain_model(model, name, settings):
     with open('results/{}/pretrain_history'.format(name), 'wb') as f:
         pickle.dump(history.history, f)
 
-    model.save('results/{}/pretrain_model.h5'.format(name))
+    model.save_weights('results/{}/pretrain_model.h5'.format(name))
 
 
-def train_full_model(name, settings):
+def train_full_model(model, name, settings):
 
     print('Getting Generators...')
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
     print('Loading Model...')
-    model = load_model('results/{}/pretrain_model.h5'.format(name), custom_objects={
-        'swish': swish, 'FixedDropout': FixedDropout
-    })
+    model = load_wights('results/{}/pretrain_model.h5'.format(name))
     loss, loss_weights = get_loss()
 
     print('Preparing Callbacks...')
@@ -89,7 +87,7 @@ def train_full_model(name, settings):
     with open('results/{}/full_train'.format(name), 'wb') as f:
         pickle.dump(history.history, f)
 
-    model.save('results/{}/train_full.h5'.format(name))
+    model.save_weights('results/{}/train_full.h5'.format(name))
     print('Done')
 
 
