@@ -32,6 +32,7 @@ def pretrain_model(model, name, settings):
 
     loss, loss_weights = get_loss()
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
+    weighted_recall = WeightedRecall(train_generator, valid_generator)
     model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=settings['steps_per_epoch'], epochs=settings['epochs'],
