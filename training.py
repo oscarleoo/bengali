@@ -64,27 +64,33 @@ def pretrain_model(model, name, settings):
 
 def train_full_model(name, settings):
 
+    print('Getting Generators...')
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
+    print('Loading Model...')
     model = load_model('results/{}/pretrain_model.h5'.format(name), custom_objects={
         'swish': swish, 'FixedDropout': FixedDropout
     })
     loss, loss_weights = get_loss()
 
+    print('Preparing Callbacks...')
     weighted_recall = WeightedRecall(train_generator, valid_generator)
     reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=2, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=3, restore_best_weights=True, verbose=1)
 
-    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, metrics=['categorical_accuracy'])
+    print('Training Model...')
+    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=settings['steps_per_epoch'], epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall, reduce_lr, early_stopping]
     )
 
+    print('Saving Model...')
     with open('results/{}/full_train'.format(name), 'wb') as f:
         pickle.dump(history.history, f)
 
     model.save('results/{}/train_full.h5'.format(name))
+    print('Done')
 
 
 def train_head(model, backend, split, name, settings):
