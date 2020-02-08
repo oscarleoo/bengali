@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import keras.backend as K
+from keras.layers import Dropout
 from keras.models import load_model
 from sklearn.metrics import recall_score, multilabel_confusion_matrix
 from keras.optimizers import Adam
@@ -11,6 +12,22 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
 
 from generators import get_data_generators
 from utils.weighted_recall import WeightedRecall
+
+
+def swish(x, beta = 1):
+    return (x * K.sigmoid(beta * x))
+
+
+class FixedDropout(Dropout):
+    def _get_noise_shape(self, inputs):
+        if self.noise_shape is None:
+            return self.noise_shape
+
+        symbolic_shape = K.shape(inputs)
+        noise_shape = [symbolic_shape[axis] if shape is None else shape
+                       for axis, shape in enumerate(self.noise_shape)]
+        return tuple(noise_shape)
+
 
 def get_loss():
 
@@ -48,7 +65,9 @@ def pretrain_model(model, name, settings):
 def train_full_model(name, settings):
 
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
-    model = load_model('results/{}/pretrain_model.h5'.format(name))
+    model = load_model('results/{}/pretrain_model.h5'.format(name), custom_objects={
+        'swish': swish, 'FixedDropout': FixedDropout
+    })
     loss, loss_weights = get_loss()
 
     weighted_recall = WeightedRecall(train_generator, valid_generator)
