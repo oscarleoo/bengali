@@ -25,9 +25,9 @@ def get_loss():
     }
 
 
-def pretrain_model(model, split, name, settings):
+def pretrain_model(model, name, settings):
 
-    if not os.path.exists():
+    if not os.path.exists('results/{}'.format(name)):
         os.makedirs('results/{}'.format(name))
 
     loss, loss_weights = get_loss()
