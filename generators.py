@@ -153,7 +153,7 @@ class ImageGenerator(Sequence):
             scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
         return round(np.average(scores, weights=[2,1,1]), 5)
 
-
+round(168 / (168 + 11 + 7), 1)
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -168,10 +168,13 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
         if self.is_train:
+            n_grapheme = int(0.9 * self.batchsize)
+            n_vowel = int((self.batchsize - n_grapheme) / 2) + 1
+            n_consonant = self.batchsize - (n_grapheme + n_consonant)
             batch_images = pd.concat([
-                self.images.sample(n=22, weights='grapheme_root_weight'),
-                self.images.sample(n=5, weights='vowel_diacritic_weight'),
-                self.images.sample(n=5, weights='consonant_diacritic_weight')
+                self.images.sample(n=n_grapheme, weights='grapheme_root_weight'),
+                self.images.sample(n=n_vowel, weights='vowel_diacritic_weight'),
+                self.images.sample(n=n_consonant, weights='consonant_diacritic_weight')
             ])
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
