@@ -28,7 +28,7 @@ def calculate_class_weights(y_true, y_pred, title, alpha):
     true_sum = true_positives + MCM[:, 1, 0]
     class_recall = (true_positives / true_sum) + alpha
     class_recall = 1 / class_recall
-    # class_recall = class_recall / np.sqrt(true_sum)
+    class_recall = class_recall / (true_sum ** (1/2))
     class_recall = class_recall / class_recall.sum()
     class_index = [i for i in range(len(class_recall))]
     return pd.DataFrame([class_index, class_recall], index=[title, '{}_weight'.format(title)]).T, true_positives, true_sum, MCM
@@ -40,6 +40,10 @@ df, _, _, _ = calculate_class_weights(validIds, predictions, 'grapheme_root', 1/
 import seaborn as sns
 import matplotlib.pyplot as plt
 %matplotlib inline
+
+plt.figure(figsize=(30, 10))
+sns.barplot(x=df['grapheme_root'], y=df['grapheme_root_weight'])
+plt.show()
 
 plt.figure(figsize=(30, 10))
 sns.barplot(x=df['grapheme_root'], y=df['grapheme_root_weight'])
