@@ -27,8 +27,8 @@ def get_b2_backbone():
 def get_b3_backbone():
     backbone = efn.EfficientNetB3(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     global_average = GlobalAveragePooling2D()(backbone.output)
-    backbone_output = Dropout(0.5)(global_average)
-    return backbone, backbone_output
+    # backbone_output = Dropout(0.5)(global_average)
+    return backbone, global_average
 
 def connect_simple_head(backbone, backbone_output):
 
