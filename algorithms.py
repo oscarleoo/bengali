@@ -18,14 +18,14 @@ def get_b1_backbone():
 
 
 def get_b2_backbone():
-    backbone = efn.EfficientNetB2(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
+    backbone = efn.EfficientNetB2(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     global_average = GlobalAveragePooling2D()(backbone.output)
     backbone_output = Dropout(0.5)(global_average)
     return backbone, backbone_output
 
 
 def get_b3_backbone():
-    backbone = efn.EfficientNetB3(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
+    backbone = efn.EfficientNetB3(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     global_average = GlobalAveragePooling2D()(backbone.output)
     backbone_output = Dropout(0.5)(global_average)
     return backbone, backbone_output

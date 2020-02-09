@@ -72,8 +72,8 @@ def train_full_model(model, name, settings):
 
     print('Preparing Callbacks...')
     weighted_recall = WeightedRecall(train_generator, valid_generator)
-    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=2, min_lr=0.000001, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=3, restore_best_weights=True, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
+    early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
 
     print('Training Model...')
     model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
