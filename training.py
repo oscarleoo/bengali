@@ -67,7 +67,7 @@ def train_full_model(model, name, settings):
     print('Getting Generators...')
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
     print('Loading Model...')
-    model = load_weights('results/{}/pretrain_model.h5'.format(name))
+    model.load_weights('results/{}/pretrain_model.h5'.format(name))
     loss, loss_weights = get_loss()
 
     print('Preparing Callbacks...')
