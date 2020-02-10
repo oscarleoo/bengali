@@ -12,11 +12,11 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.IAAPiecewiseAffine()
     # AA.GridDistortion(num_steps=3, distort_limit=0.1, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.ElasticTransform(alpha=1, sigma=10, alpha_affine=10, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.RandomContrast(limit=0.2, p=0.8),
+    # AA.RandomContrast(limit=0.2, p=0.8),
     # AA.OneOf([
     #     AA.MedianBlur(blur_limit=3),
     #     AA.Blur(blur_limit=3),
@@ -166,17 +166,17 @@ class MultiOutputImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        if self.is_train:
-            n_grapheme = int(0.9 * self.batch_size)
-            n_vowel = int((self.batch_size - n_grapheme) / 2) + 1
-            n_consonant = self.batch_size - (n_grapheme + n_vowel)
-            batch_images = pd.concat([
-                self.images.sample(n=n_grapheme, weights='grapheme_root_weight'),
-                self.images.sample(n=n_vowel, weights='vowel_diacritic_weight'),
-                self.images.sample(n=n_consonant, weights='consonant_diacritic_weight')
-            ])
-        else:
-            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+        # if self.is_train:
+        #     n_grapheme = int(0.9 * self.batch_size)
+        #     n_vowel = int((self.batch_size - n_grapheme) / 2) + 1
+        #     n_consonant = self.batch_size - (n_grapheme + n_vowel)
+        #     batch_images = pd.concat([
+        #         self.images.sample(n=n_grapheme, weights='grapheme_root_weight'),
+        #         self.images.sample(n=n_vowel, weights='vowel_diacritic_weight'),
+        #         self.images.sample(n=n_consonant, weights='consonant_diacritic_weight')
+        #     ])
+        # else:
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
