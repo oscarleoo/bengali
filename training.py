@@ -52,7 +52,7 @@ def pretrain_model(model, name, settings):
     weighted_recall = WeightedRecall(train_generator, valid_generator)
     model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=settings['steps_per_epoch'], epochs=settings['epochs'],
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall]
     )
@@ -78,7 +78,7 @@ def train_full_model(model, name, settings):
     print('Training Model...')
     model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=settings['steps_per_epoch'], epochs=settings['epochs'],
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall, reduce_lr, early_stopping]
     )
