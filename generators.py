@@ -21,7 +21,7 @@ augmentor = AA.Compose([
     #     AA.MedianBlur(blur_limit=3),
     #     AA.Blur(blur_limit=3),
     # ], p=0.4),
-    AA.Cutout(num_holes=2, max_h_size=16, max_w_size=16, p=0.8),
+    AA.Cutout(num_holes=16, max_h_size=16, max_w_size=16, p=0.8),
 ], p=1)
 
 # plt.imshow(IMAGES['Train_12451'], cmap='gray')
