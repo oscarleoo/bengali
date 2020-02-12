@@ -84,7 +84,7 @@ def train_full_model(model, name, settings, retrain=False):
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[weighted_recall, reduce_lr, early_stopping]
+        callbacks=[weighted_recall, reduce_lr, early_stopping, model_checkpoint]
     )
 
     print('Saving Model...')
