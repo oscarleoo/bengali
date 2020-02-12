@@ -20,16 +20,16 @@ augmentor = AA.Compose([
         AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
         AA.ElasticTransform(alpha=1, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
     ], p=1.0),
-    AA.OneOf([
-        AA.GaussianBlur(),
-        AA.Blur(blur_limit=3),
-    ], p=0.5),
+    # AA.OneOf([
+    #     AA.GaussianBlur(),
+    #     AA.Blur(blur_limit=3),
+    # ], p=0.5),
     # AA.Cutout(num_holes=8, max_h_size=16, max_w_size=16, p=0.8),
 ], p=1)
 
 # %timeit x=augmentor(image=image.copy())['image']
 
-# plot_augmentations('Train_12451')
+plot_augmentations('Train_12451')
 
 def plot_augmentations(random_id=None):
     if not random_id:
