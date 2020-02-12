@@ -32,7 +32,12 @@ def augmix(image, n=2):
     augmentations = []
     for i in range(n):
         augmentations.append(augmentor(image=image.copy())['image'])
-    return augmentations
+    return np.max(augmentations, axis=2)
+
+# trainIds.loc['Train_12451']
+
+
+# trainIds[trainIds['grapheme_root'] == 53].head(20)
 
 # hmm = np.max(augmix(image), axis=0)
 # plt.imshow(hmm, cmap='gray')
