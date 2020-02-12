@@ -17,15 +17,25 @@ augmentor = AA.Compose([
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
     AA.OneOf([
-        AA.GridDistortion(num_steps=3, distort_limit=0.3, border_mode=cv2.BORDER_CONSTANT, value=0),
-        AA.ElasticTransform(alpha=3, sigma=20, alpha_affine=15, border_mode=cv2.BORDER_CONSTANT, value=0),
+        AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+        AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
     ], p=1.0),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
-    # AA.Cutout(num_holes=8, max_h_size=16, max_w_size=16, p=0.8),
+    # AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.8),
 ], p=1)
+
+def augmix(image, n=2):
+
+    augmentations = []
+    for i in range(n):
+        augmentations.append(augmentor(image=image.copy())['image'])
+    return augmentations
+
+# hmm = np.max(augmix(image), axis=0)
+# plt.imshow(hmm, cmap='gray')
 
 # %timeit x=augmentor(image=image.copy())['image']
 
@@ -190,7 +200,11 @@ class MultiOutputImageGenerator(Sequence):
             image_id = row['image_id']
             x = get_image(image_id)
             if self.is_train:
-                x = augmentor(image=x)['image']
+                r = np.random.rand()
+                if r < 0.2:
+                    x = augmix(x)
+                else:
+                    x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
