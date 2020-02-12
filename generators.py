@@ -29,7 +29,7 @@ augmentor = AA.Compose([
 
 # %timeit x=augmentor(image=image.copy())['image']
 
-plot_augmentations('Train_12451')
+# plot_augmentations('Train_12451')
 
 def plot_augmentations(random_id=None):
     if not random_id:
