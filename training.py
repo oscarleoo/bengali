@@ -8,7 +8,7 @@ from keras.layers import Dropout
 from keras.models import load_model
 from sklearn.metrics import recall_score, multilabel_confusion_matrix
 from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback, ModelCheckpoint
 
 from generators import get_data_generators
 from utils.weighted_recall import WeightedRecall
@@ -77,6 +77,7 @@ def train_full_model(model, name, settings, retrain=False):
     weighted_recall = WeightedRecall(train_generator, valid_generator)
     reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
+    model_checkpoint = ModelCheckpoint('results/{}/train_full.h5'.format(name), monitor='val_grapheme_root_loss', verbose=1, save_best_only=True, save_weights_only=True)
 
     print('Training Model...')
     model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
