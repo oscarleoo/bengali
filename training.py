@@ -108,7 +108,7 @@ def train_head(model, backend, split, name, settings):
 
     model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'])
     history = model.fit_generator(
-        train_generator, steps_per_epoch=5000, epochs=1000,
+        train_generator, steps_per_epoch=train_generator.__len__(), epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
         callbacks=[weighted_recall, early_stopping, reduce_lr]
     )
