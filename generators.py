@@ -11,6 +11,11 @@ IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
+graphemeIds = {}
+for i in range(168):
+    graphemeIds[i] = list(trainIds[trainIds['grapheme_root'] == i].index)
+
+
 augmentor = AA.Compose([
     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
@@ -34,17 +39,6 @@ def augmix(image, n=2):
         augmentations.append(augmentor(image=image.copy())['image'])
     return np.max(augmentations, axis=2)
 
-# trainIds.loc['Train_12451']
-
-
-# trainIds[trainIds['grapheme_root'] == 53].head(20)
-
-# hmm = np.max(augmix(image), axis=0)
-# plt.imshow(hmm, cmap='gray')
-
-# %timeit x=augmentor(image=image.copy())['image']
-
-# plot_augmentations('Train_12451')
 
 def plot_augmentations(random_id=None):
     if not random_id:
@@ -184,17 +178,15 @@ class MultiOutputImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        # if self.is_train:
-        #     n_grapheme = int(0.9 * self.batch_size)
-        #     n_vowel = int((self.batch_size - n_grapheme) / 2) + 1
-        #     n_consonant = self.batch_size - (n_grapheme + n_vowel)
-        #     batch_images = pd.concat([
-        #         self.images.sample(n=n_grapheme, weights='grapheme_root_weight'),
-        #         self.images.sample(n=n_vowel, weights='vowel_diacritic_weight'),
-        #         self.images.sample(n=n_consonant, weights='consonant_diacritic_weight')
-        #     ])
-        # else:
-        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
+        if self.is_train:
+            batchIds = []
+            grapheme_root_list = [i for i in range(168)]
+            np.random.shuffle(grapheme_root_list)
+            for grapheme_root in grapheme_root_list:
+                batchIds.append(np.random.choice(graphemeIds[grapheme_root]))
+            batch_images = self.images[self.images['image_id'].isin(batchIds)]
+        else:
+            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
