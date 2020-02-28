@@ -43,5 +43,5 @@ class WeightedRecall(Callback):
         calculate_class_weights(validIds, predictions, 'vowel_diacritic')
         calculate_class_weights(validIds, predictions, 'consonant_diacritic')
         score, gr_score, vd_score, cd_score = calculate_recall(validIds, predictions)
-        print('==> Weighted Recal Score: {} ({} - {} - {})'.format(score, gr_score, vd_score, cd_score))
+        print('\n ==> Weighted Recal Score: {} ({} - {} - {})'.format(score, gr_score, vd_score, cd_score))
         return
