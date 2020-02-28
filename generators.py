@@ -11,10 +11,6 @@ IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
-graphemeIds = {}
-for i in range(168):
-    graphemeIds[i] = list(trainIds[trainIds['grapheme_root'] == i].index)
-
 
 augmentor = AA.Compose([
     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
@@ -31,13 +27,6 @@ augmentor = AA.Compose([
     # ], p=0.5),
     # AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.8),
 ], p=1)
-
-def augmix(image, n=2):
-
-    augmentations = []
-    for i in range(n):
-        augmentations.append(augmentor(image=image.copy())['image'])
-    return np.max(augmentations, axis=2)
 
 
 def plot_augmentations(random_id=None):
@@ -91,80 +80,6 @@ def crop_and_resize_image(image):
     image = image.clip(0, 1)
     return image
 
-class ImageGenerator(Sequence):
-
-    def __init__(self, images, batch_size, is_train):
-        self.images = images
-        self.batch_size = batch_size
-        self.is_train = is_train
-
-    def __len__(self):
-        return int(len(self.images) / self.batch_size)
-
-    def __getitem__(self, idx):
-
-        # if self.is_train:
-        #     batch_images = pd.concat([
-        #         self.images.sample(n=90, weights='grapheme_root_weight'),
-        #         self.images.sample(n=19, weights='vowel_diacritic_weight'),
-        #         self.images.sample(n=19, weights='consonant_diacritic_weight')
-        #     ])
-        # else:
-        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]['image_id']
-
-        X = np.zeros((self.batch_size, 64, 64, 3))
-        Y = np.zeros((self.batch_size, 168 + 11 + 7))
-
-        for i, row in batch_images.reset_index().iterrows():
-            image_id = row['image_id']
-            x = get_image(image_id)
-            if self.is_train:
-                x = augmentor(image=x)['image']
-            x = crop_and_resize_image(x)
-            X[i] = np.stack([x, x, x], axis=2)
-            grapheme_root_Y = [0 for i in range(168)]
-            vowel_diacritic_Y = [0 for i in range(11)]
-            consonant_diacritic_Y = [0 for i in range(7)]
-            grapheme_root_Y[trainIds.loc[image_id]['grapheme_root']] = 1
-            vowel_diacritic_Y[trainIds.loc[image_id]['vowel_diacritic']] = 1
-            consonant_diacritic_Y[trainIds.loc[image_id]['consonant_diacritic']] = 1
-            Y[i] = np.array(grapheme_root_Y + vowel_diacritic_Y + consonant_diacritic_Y)
-
-        return X, Y
-
-    def make_predictions(self, model):
-        grapheme_root_predictions = []
-        vowel_diacritic_predictions = []
-        consonant_diacritic_predictions = []
-        images = []
-        for image_id in self.images['image_id']:
-            image = crop_and_resize_image(get_image(image_id))
-            image = np.stack([image, image, image], axis=2)
-            images.append(image)
-            if len(images) == 512:
-                predictions = model.predict(np.array(images))
-                grapheme_root_predictions.extend(predictions[:, :168].argmax(axis=1))
-                vowel_diacritic_predictions.extend(predictions[:, 168:179].argmax(axis=1))
-                consonant_diacritic_predictions.extend(predictions[:, 179:].argmax(axis=1))
-                images = []
-        predictions = model.predict(np.array(images))
-        grapheme_root_predictions.extend(predictions[:, :168].argmax(axis=1))
-        vowel_diacritic_predictions.extend(predictions[:, 168:179].argmax(axis=1))
-        consonant_diacritic_predictions.extend(predictions[:, 179:].argmax(axis=1))
-        return pd.DataFrame([
-            self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
-        ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
-
-    def recall(self, model):
-        predictions = self.make_predictions(model).sort_index()
-        validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
-        scores = []
-        for component in ['grapheme_root', 'consonant_diacritic', 'vowel_diacritic']:
-            y_true_subset = validIds[component].values.astype(int)
-            y_pred_subset = predictions[component].values.astype(int)
-            scores.append(recall_score(y_true_subset, y_pred_subset, average='macro'))
-        return round(np.average(scores, weights=[2,1,1]), 5)
-
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -172,6 +87,11 @@ class MultiOutputImageGenerator(Sequence):
         self.images = images
         self.batch_size = batch_size
         self.is_train = is_train
+
+        self.graphemeIds = {}
+        tempIds = trainIds[trainIds.index.isin(self.images['image_id'])]
+        for i in range(168):
+            self.graphemeIds[i] = list(tempIds[tempIds['grapheme_root'] == i].index)
 
     def __len__(self):
         return int(len(self.images) / self.batch_size)
@@ -183,7 +103,7 @@ class MultiOutputImageGenerator(Sequence):
             grapheme_root_list = [i for i in range(168)]
             np.random.shuffle(grapheme_root_list)
             for grapheme_root in grapheme_root_list:
-                batchIds.append(np.random.choice(graphemeIds[grapheme_root]))
+                batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
             batch_images = self.images[self.images['image_id'].isin(batchIds)]
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
@@ -197,11 +117,7 @@ class MultiOutputImageGenerator(Sequence):
             image_id = row['image_id']
             x = get_image(image_id)
             if self.is_train:
-                r = np.random.rand()
-                if r < 0.2:
-                    x = augmix(x)
-                else:
-                    x = augmentor(image=x)['image']
+                x = augmentor(image=x)['image']
             x = crop_and_resize_image(x)
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
@@ -262,9 +178,6 @@ def get_data_generators(split, batch_size):
 
     train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
     valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
-    train_df['grapheme_root_weight'] = 1
-    train_df['vowel_diacritic_weight'] = 1
-    train_df['consonant_diacritic_weight'] = 1
 
     train_generator = MultiOutputImageGenerator(train_df, batch_size, True)
     valid_generator = MultiOutputImageGenerator(valid_df, batch_size, False)
