@@ -11,7 +11,6 @@ IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
-
 augmentor = AA.Compose([
     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
@@ -88,10 +87,19 @@ class MultiOutputImageGenerator(Sequence):
         self.batch_size = batch_size
         self.is_train = is_train
 
-        self.graphemeIds = {}
         tempIds = trainIds[trainIds.index.isin(self.images['image_id'])]
+
+        self.graphemeIds = {}
         for i in range(168):
             self.graphemeIds[i] = list(tempIds[tempIds['grapheme_root'] == i].index)
+
+        self.vowelIds = {}
+        for i in range(11):
+            self.vowelIds[i] = list(tempIds[tempIds['vowel_diacritic'] == i].index)
+
+        self.consonantIds = {}
+        for i in range(7):
+            self.consonantIds[i] = list(tempIds[tempIds['consonant_diacritic'] == i].index)
 
     def __len__(self):
         return int(len(self.images) / self.batch_size)
@@ -100,10 +108,17 @@ class MultiOutputImageGenerator(Sequence):
 
         if self.is_train:
             batchIds = []
-            grapheme_root_list = [i for i in range(168)]
-            np.random.shuffle(grapheme_root_list)
-            for grapheme_root in grapheme_root_list:
+
+            for grapheme_root in [i for i in range(168)]:
                 batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
+
+            for vowel in [i for i in range(11)]:
+                batchIds.append(np.random.choice(self.vowelIds[vowel]))
+
+            for consonant in [i for i in range(7)]:
+                batchIds.append(np.random.choice(self.consonantIds[consonant]))
+
+            np.random.shuffle(batchIds)
             batch_images = self.images[self.images['image_id'].isin(batchIds)]
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
