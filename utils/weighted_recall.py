@@ -16,7 +16,7 @@ def calculate_class_weights(y_true, y_pred, title):
     true_sum = true_positives + MCM[:, 1, 0]
     class_recall = (true_positives / true_sum)
     class_recall = [(i, r) for i, r in zip([i for i in range(len(class_recall))], class_recall)]
-    class_recall.sort(key=lambda x: x[0])
+    class_recall.sort(key=lambda x: x[1])
     print('\n ==>', title)
     for i, r in class_recall:
         print('class {}: {}'.format(i, round(r, 4)))
