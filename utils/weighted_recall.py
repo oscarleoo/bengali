@@ -7,19 +7,16 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 
-def calculate_class_weights(y_true, y_pred, title, alpha):
+def calculate_class_weights(y_true, y_pred, title):
     MCM = multilabel_confusion_matrix(
         y_true[title].values.astype(int),
         y_pred[title].values.astype(int)
     )
     true_positives = MCM[:, 1, 1]
     true_sum = true_positives + MCM[:, 1, 0]
-    class_recall = (true_positives / true_sum) + alpha
-    class_recall = 1 / class_recall
-    class_recall = class_recall / (true_sum ** (1/4))
-    class_recall = class_recall / class_recall.sum()
-    class_index = [i for i in range(len(class_recall))]
-    return pd.DataFrame([class_index, class_recall], index=[title, '{}_weight'.format(title)]).T
+    class_recall = (true_positives / true_sum)
+    class_recall = [(i, r) for i, r in zip([i for i in range(len(class_recall))], class_recall)]
+    print('title', '\n', class_recall)
 
 
 def calculate_recall(y_true, y_pred):
@@ -40,10 +37,9 @@ class WeightedRecall(Callback):
     def on_epoch_end(self, batch, logs={}):
         predictions = self.valid.make_predictions(self.model).sort_index()
         validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
-        gr_weights = calculate_class_weights(validIds, predictions, 'grapheme_root', 1/168)
-        vc_weights = calculate_class_weights(validIds, predictions, 'vowel_diacritic', 1/11)
-        cd_weights = calculate_class_weights(validIds, predictions, 'consonant_diacritic', 1/7)
-        self.train.update_weights(gr_weights, vc_weights, cd_weights)
+        calculate_class_weights(validIds, predictions, 'grapheme_root')
+        calculate_class_weights(validIds, predictions, 'vowel_diacritic')
+        calculate_class_weights(validIds, predictions, 'consonant_diacritic')
         score, gr_score, vd_score, cd_score = calculate_recall(validIds, predictions)
         print('==> Weighted Recal Score: {} ({} - {} - {})'.format(score, gr_score, vd_score, cd_score))
         return
