@@ -244,7 +244,10 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_predictions = []
         images = []
         for image_id in self.images['image_id']:
-            image = crop_and_resize_image(get_image(image_id))
+            image = get_image(image_id)
+            image = scale_values(image)
+            image = trim_image(image)
+            image = pad_image(image)
             image = np.stack([image, image, image], axis=2)
             images.append(image)
             if len(images) == 128:
