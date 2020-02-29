@@ -12,14 +12,14 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=20, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    AA.OneOf([
-        AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
-        AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    ], p=1.0),
+    # AA.OneOf([
+    #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+    #     AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # ], p=1.0),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
@@ -28,40 +28,21 @@ augmentor = AA.Compose([
 ], p=1)
 
 
-def plot_augmentations(random_id=None):
-    if not random_id:
-        random_id = np.random.choice(list(IMAGES.keys()))
-    image = get_image(random_id)
-    plt.figure(figsize=(5, 5))
-    plt.imshow(crop_and_resize_image(image.copy()), cmap='gray')
-    plt.show()
-
-    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
-    row, col = 0, 0
-    for i in range(16):
-        aug_img = augmentor(image=image.copy())['image']
-        axes[row][col].imshow(crop_and_resize_image(aug_img), cmap='gray')
-        axes[row][col].set_xticks([])
-        axes[row][col].set_yticks([])
-        if col == 3:
-            col = 0
-            row += 1
-        else:
-            col += 1
-    plt.tight_layout()
-    plt.show()
-
-
 def get_image(image_id):
     return IMAGES[image_id].copy()
 
 
-def crop_and_resize_image(image):
+def trim_image(image):
 
-    sum_axis_0 = image.sum(axis=0) > 100
-    sum_axis_1 = image.sum(axis=1) > 100
+    sum_axis_0 = image.sum(axis=0) > 0.1
+    sum_axis_1 = image.sum(axis=1) > 0.1
     image = image[sum_axis_1, :]
     image = image[:, sum_axis_0]
+
+    return image
+
+
+def pad_image(image):
 
     height, width = image.shape[:2]
     size = max([width, height])
@@ -73,11 +54,103 @@ def crop_and_resize_image(image):
         diff = int((size - height) / 2)
         image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
 
-    image = cv2.resize(image, (64, 64))
+    return cv2.resize(image, (64, 64))
+
+
+def scale_values(image):
+
     image = image - image.min()
     image = image / np.percentile(image, 99)
-    image = image.clip(0, 1)
+    return image.clip(0, 1)
+
+
+def get_cut_values(image):
+    height, width = image.shape[:2]
+    for l0, s in enumerate(image.sum(axis=0)):
+        if s >= 5: break
+    for r0, s in enumerate(np.flip(image.sum(axis=0))):
+        if s >= 5: break
+    for l1, s in enumerate(image.sum(axis=1)):
+        if s >= 5: break
+    for r1, s in enumerate(np.flip(image.sum(axis=1))):
+        if s >= 5: break
+
+    return l0, r0, l1, r1
+
+
+def random_trim(image, l0, r0, l1, r1):
+
+    height, width = image.shape[:2]
+
+    p = np.array([l0 + 4, r0 + 4, l1 + 4, r1 + 4]) / (l0 + r0 + l1 + r1 + 16)
+    r = np.random.choice(['l0', 'r0', 'l1', 'r1'], p=p)
+
+    if r == 'l0':
+        image = image[np.random.randint(l1 + 1):,:]
+    elif r == 'r0':
+        image = image[:np.random.randint(height - r1, height + 1),:]
+    elif r == 'l1':
+        image = image[:,np.random.randint(l0 + 1):]
+    elif r == 'r1':
+        image = image[:,:np.random.randint(width - r0, width + 1)]
+
     return image
+
+
+def plot_preprocessing(image_id=None):
+
+    if not image_id:
+        image_id = np.random.choice(list(IMAGES.keys()))
+
+    image = get_image(image_id)
+    image = scale_values(image)
+    plt.figure(figsize=(5, 5))
+    plt.imshow(image, cmap='gray')
+    plt.show()
+
+    image = trim_image(image)
+    plt.figure(figsize=(5, 5))
+    plt.imshow(image, cmap='gray')
+    plt.show()
+
+    image = random_trim(image)
+    plt.figure(figsize=(5, 5))
+    plt.imshow(image, cmap='gray')
+    plt.show()
+
+
+def plot_augmentations(random_id=None):
+
+    if not random_id:
+        random_id = np.random.choice(list(IMAGES.keys()))
+
+    image = get_image(random_id)
+    image = scale_values(image)
+
+    plt.figure(figsize=(5, 5))
+    plt.imshow(pad_image(trim_image(image)), cmap='gray')
+    plt.show()
+
+    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
+    row, col = 0, 0
+    for i in range(16):
+        aug_img = augmentor(image=image.copy())['image']
+        aug_img = trim_image(aug_img)
+        l0, r0, l1, r1 = get_cut_values(aug_img)
+        aug_img = random_trim(aug_img.copy(), l0, r0, l1, r1 )
+        axes[row][col].imshow(pad_image(aug_img), cmap='gray')
+        axes[row][col].set_xticks([])
+        axes[row][col].set_yticks([])
+        if col == 3:
+            col = 0
+            row += 1
+        else:
+            col += 1
+    plt.tight_layout()
+    plt.show()
+
+
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -131,9 +204,16 @@ class MultiOutputImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
             x = get_image(image_id)
+            x = scale_values(x)
             if self.is_train:
                 x = augmentor(image=x)['image']
-            x = crop_and_resize_image(x)
+                x = trim_image(x)
+                l0, r0, l1, r1 = get_cut_values(x)
+                x = random_trim(x, l0, r0, l1, r1)
+            else:
+                x = trim_image(x)
+
+            x = pad_image(x)
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
