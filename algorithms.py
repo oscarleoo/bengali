@@ -3,7 +3,7 @@ from keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from keras.models import Model
 
 def get_b0_backbone():
-    backbone = efn.EfficientNetB0(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
+    backbone = efn.EfficientNetB0(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
     backbone_output = GlobalAveragePooling2D()(backbone.output)
     return backbone, backbone_output
 

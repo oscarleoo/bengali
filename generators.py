@@ -193,14 +193,14 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
 
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
-            x = get_image(image_id)
+            x = cv2.resize(get_image(image_id), (64, 64))
             x = scale_values(x)
             if self.is_train:
                 x = augmentor(image=x)['image']
@@ -234,7 +234,7 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_predictions = []
         images = []
         for image_id in self.images['image_id']:
-            image = get_image(image_id)
+            image = cv2.resize(get_image(image_id), (64, 64))
             image = scale_values(image)
             image = np.stack([image, augmentor(image=image)['image'], augmentor(image=image)['image']], axis=2)
             images.append(image)
