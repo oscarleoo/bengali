@@ -12,7 +12,7 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=20, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
@@ -128,17 +128,14 @@ def plot_augmentations(random_id=None):
     image = scale_values(image)
 
     plt.figure(figsize=(5, 5))
-    plt.imshow(pad_image(trim_image(image)), cmap='gray')
+    plt.imshow(pad_image(image), cmap='gray')
     plt.show()
 
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
         aug_img = augmentor(image=image.copy())['image']
-        aug_img = trim_image(aug_img)
-        l0, r0, l1, r1 = get_cut_values(aug_img)
-        aug_img = random_trim(aug_img.copy(), l0, r0, l1, r1 )
-        axes[row][col].imshow(pad_image(aug_img), cmap='gray')
+        axes[row][col].imshow(aug_img, cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
         if col == 3:
@@ -150,7 +147,7 @@ def plot_augmentations(random_id=None):
     plt.show()
 
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -196,7 +193,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 64, 64, 3))
+        X = np.zeros((self.batch_size, 128, 128, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
@@ -207,14 +204,7 @@ class MultiOutputImageGenerator(Sequence):
             x = scale_values(x)
             if self.is_train:
                 x = augmentor(image=x)['image']
-                x = trim_image(x)
-                l0, r0, l1, r1 = get_cut_values(x)
-                x = random_trim(x, l0, r0, l1, r1)
-            else:
-                x = trim_image(x)
-
-            x = pad_image(x)
-            X[i] = np.stack([x, x, x], axis=2)
+            X[i] = np.stack([x, augmentor(image=x)['image'], augmentor(image=x)['image']], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
@@ -246,9 +236,7 @@ class MultiOutputImageGenerator(Sequence):
         for image_id in self.images['image_id']:
             image = get_image(image_id)
             image = scale_values(image)
-            image = trim_image(image)
-            image = pad_image(image)
-            image = np.stack([image, image, image], axis=2)
+            image = np.stack([image, augmentor(image=image)['image'], augmentor(image=image)['image']], axis=2)
             images.append(image)
             if len(images) == 128:
                 predictions = model.predict(np.array(images))
