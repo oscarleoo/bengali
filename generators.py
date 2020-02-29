@@ -12,19 +12,19 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    # AA.OneOf([
-    #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
-    #     AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # ], p=1.0),
+    AA.OneOf([
+        AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+        AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    ], p=1.0),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
-    # AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.8),
+    AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.2),
 ], p=1)
 
 
@@ -128,14 +128,17 @@ def plot_augmentations(random_id=None):
     image = scale_values(image)
 
     plt.figure(figsize=(5, 5))
-    plt.imshow(pad_image(image), cmap='gray')
+    plt.imshow(pad_image(trim_image(image)), cmap='gray')
     plt.show()
 
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
         aug_img = augmentor(image=image.copy())['image']
-        axes[row][col].imshow(aug_img, cmap='gray')
+        aug_img = trim_image(aug_img)
+        l0, r0, l1, r1 = get_cut_values(aug_img)
+        aug_img = random_trim(aug_img.copy(), l0, r0, l1, r1 )
+        axes[row][col].imshow(pad_image(aug_img), cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
         if col == 3:
@@ -147,7 +150,7 @@ def plot_augmentations(random_id=None):
     plt.show()
 
 
-plot_augmentations()
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -200,10 +203,17 @@ class MultiOutputImageGenerator(Sequence):
 
         for i, row in batch_images.reset_index().iterrows():
             image_id = row['image_id']
-            x = cv2.resize(get_image(image_id), (64, 64))
+            x = get_image(image_id)
             x = scale_values(x)
             if self.is_train:
                 x = augmentor(image=x)['image']
+                x = trim_image(x)
+                l0, r0, l1, r1 = get_cut_values(x)
+                x = random_trim(x, l0, r0, l1, r1)
+            else:
+                x = trim_image(x)
+
+            x = pad_image(x)
             X[i] = np.stack([x, augmentor(image=x)['image'], augmentor(image=x)['image']], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
@@ -234,8 +244,10 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_predictions = []
         images = []
         for image_id in self.images['image_id']:
-            image = cv2.resize(get_image(image_id), (64, 64))
+            image = get_image(image_id)
             image = scale_values(image)
+            image = trim_image(image)
+            image = pad_image(image)
             image = np.stack([image, augmentor(image=image)['image'], augmentor(image=image)['image']], axis=2)
             images.append(image)
             if len(images) == 128:
