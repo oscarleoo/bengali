@@ -88,7 +88,6 @@ def get_cut_values(image):
 
 def random_trim(image, l0, r0, l1, r1):
 
-    print(image.shape)
     height, width = image.shape[:2]
 
     p = np.array([l0 + 2, r0 + 2, l1 + 2, r1 + 2]) / (l0 + r0 + l1 + r1 + 8)
@@ -102,7 +101,6 @@ def random_trim(image, l0, r0, l1, r1):
         image = image[:,np.random.randint(l0 + 1):]
     elif r == 'r1':
         image = image[:,:np.random.randint(width - r0, width + 1)]
-    print(image.shape)
 
     return image
 
