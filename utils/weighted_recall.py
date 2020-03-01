@@ -16,10 +16,8 @@ def calculate_class_weights(y_true, y_pred, title):
     true_sum = true_positives + MCM[:, 1, 0]
     class_recall = (true_positives / true_sum)
     class_recall = [(i, r) for i, r in zip([i for i in range(len(class_recall))], class_recall)]
-    class_recall.sort(key=lambda x: x[1])
-    print('\n ==>', title)
-    for i, r in class_recall:
-        print('class {}: {}'.format(i, round(r, 4)))
+    class_recall.sort(key=lambda x: x[0])
+    return class_recall
 
 
 def calculate_recall(y_true, y_pred):
@@ -31,6 +29,16 @@ def calculate_recall(y_true, y_pred):
     return round(np.average(scores, weights=[2,1,1]), 5), round(scores[0], 5), round(scores[1], 5), round(scores[2], 5)
 
 
+def print_recall(trainRecall, validRecall, title):
+
+    print('{} Recall'.format(title))
+    trainRecall = {i: tr for i, tr in trainRecall}
+    validRecall.sort(key=lambda x: x[1])
+    for i, vr in validRecall:
+        print('{}: {} ({})'.format(i, round(vr, 4), round(trainRecall[i], 4)))
+
+
+
 class WeightedRecall(Callback):
 
     def __init__(self, train, valid):
@@ -38,11 +46,25 @@ class WeightedRecall(Callback):
         self.valid = valid
 
     def on_epoch_end(self, batch, logs={}):
-        predictions = self.valid.make_predictions(self.model).sort_index()
-        validIds = trainIds[trainIds.index.isin(predictions.index)].sort_index()
-        calculate_class_weights(validIds, predictions, 'grapheme_root')
-        calculate_class_weights(validIds, predictions, 'vowel_diacritic')
-        calculate_class_weights(validIds, predictions, 'consonant_diacritic')
-        score, gr_score, vd_score, cd_score = calculate_recall(validIds, predictions)
-        print('\n ==> Weighted Recal Score: {} ({} - {} - {})'.format(score, gr_score, vd_score, cd_score))
+        valid_predictions = self.valid.make_predictions(self.model).sort_index()
+        train_predictions = self.train.make_predictions(self.model).sort_index()
+
+        valid_ids = trainIds[trainIds.index.isin(valid_predictions.index)].sort_index()
+        train_ids = trainIds[trainIds.index.isin(train_predictions.index)].sort_index()
+
+        validGrapheme = calculate_class_weights(valid_ids, valid_predictions, 'grapheme_root')
+        trainGrapheme = calculate_class_weights(train_ids, train_predictions, 'grapheme_root')
+
+        validVowel = calculate_class_weights(valid_ids, valid_predictions, 'vowel_diacritic')
+        trainVowel = calculate_class_weights(train_ids, train_predictions, 'vowel_diacritic')
+
+        validConsonant = calculate_class_weights(valid_ids, valid_predictions, 'consonant_diacritic')
+        trainConsonant = calculate_class_weights(train_ids, train_predictions, 'consonant_diacritic')
+
+
+        valid_score, valid_gr_score, valid_vd_score, valid_cd_score = calculate_recall(valid_ids, valid_predictions)
+        train_score, train_gr_score, train_vd_score, train_cd_score = calculate_recall(train_ids, train_predictions)
+
+        print('\n ==> Weighted Train Recal Score: {} ({} - {} - {})'.format(valid_score, valid_gr_score, valid_vd_score, valid_cd_score))
+        print('\n ==> Weighted Valid Recal Score: {} ({} - {} - {})'.format(train_score, train_gr_score, train_vd_score, train_cd_score))
         return

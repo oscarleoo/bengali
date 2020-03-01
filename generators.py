@@ -16,15 +16,15 @@ augmentor = AA.Compose([
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    AA.OneOf([
-        AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
-        AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    ], p=1.0),
+    # AA.OneOf([
+    #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+    #     AA.ElasticTransform(alpha=3, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # ], p=1.0),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
-    AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.2),
+    # AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.2),
 ], p=1)
 
 
@@ -42,17 +42,25 @@ def trim_image(image):
     return image
 
 
-def pad_image(image):
+def pad_image(image, train=False):
 
     height, width = image.shape[:2]
     size = max([width, height])
 
     if width < size:
-        diff = int((size - width) / 2)
-        image = np.concatenate([np.zeros((height, diff)), image, np.zeros((height, diff))], axis=1)
+        missing = size - width
+        if train:
+            diff = np.random.randint(missing)
+        else:
+            diff = int(missing / 2)
+        image = np.concatenate([np.zeros((height, diff)), image, np.zeros((height, missing - diff))], axis=1)
     if height < size:
-        diff = int((size - height) / 2)
-        image = np.concatenate([np.zeros((diff, width)), image, np.zeros((diff, width))], axis=0)
+        missing = size - height
+        if train:
+            diff = np.random.randint(missing)
+        else:
+            diff = int(missing / 2)
+        image = np.concatenate([np.zeros((diff, width)), image, np.zeros((missing - diff, width))], axis=0)
 
     return cv2.resize(image, (64, 64))
 
@@ -80,9 +88,10 @@ def get_cut_values(image):
 
 def random_trim(image, l0, r0, l1, r1):
 
+    print(image.shape)
     height, width = image.shape[:2]
 
-    p = np.array([l0 + 4, r0 + 4, l1 + 4, r1 + 4]) / (l0 + r0 + l1 + r1 + 16)
+    p = np.array([l0 + 2, r0 + 2, l1 + 2, r1 + 2]) / (l0 + r0 + l1 + r1 + 8)
     r = np.random.choice(['l0', 'r0', 'l1', 'r1'], p=p)
 
     if r == 'l0':
@@ -93,30 +102,9 @@ def random_trim(image, l0, r0, l1, r1):
         image = image[:,np.random.randint(l0 + 1):]
     elif r == 'r1':
         image = image[:,:np.random.randint(width - r0, width + 1)]
+    print(image.shape)
 
     return image
-
-
-def plot_preprocessing(image_id=None):
-
-    if not image_id:
-        image_id = np.random.choice(list(IMAGES.keys()))
-
-    image = get_image(image_id)
-    image = scale_values(image)
-    plt.figure(figsize=(5, 5))
-    plt.imshow(image, cmap='gray')
-    plt.show()
-
-    image = trim_image(image)
-    plt.figure(figsize=(5, 5))
-    plt.imshow(image, cmap='gray')
-    plt.show()
-
-    image = random_trim(image)
-    plt.figure(figsize=(5, 5))
-    plt.imshow(image, cmap='gray')
-    plt.show()
 
 
 def plot_augmentations(random_id=None):
@@ -202,6 +190,7 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
 
         for i, row in batch_images.reset_index().iterrows():
+
             image_id = row['image_id']
             x = get_image(image_id)
             x = scale_values(x)
@@ -213,8 +202,10 @@ class MultiOutputImageGenerator(Sequence):
             else:
                 x = trim_image(x)
 
-            x = pad_image(x)
-            X[i] = np.stack([x, augmentor(image=x)['image'], augmentor(image=x)['image']], axis=2)
+            x = pad_image(x, self.is_train)
+            plt.tight_layout()
+            plt.show()
+            X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
@@ -247,8 +238,8 @@ class MultiOutputImageGenerator(Sequence):
             image = get_image(image_id)
             image = scale_values(image)
             image = trim_image(image)
-            image = pad_image(image)
-            image = np.stack([image, augmentor(image=image)['image'], augmentor(image=image)['image']], axis=2)
+            image = pad_image(image, False)
+            image = np.stack([image, image, image], axis=2)
             images.append(image)
             if len(images) == 128:
                 predictions = model.predict(np.array(images))
