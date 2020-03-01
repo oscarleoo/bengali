@@ -26,7 +26,7 @@ augmentor = AA.Compose([
     # ], p=0.5),
 ], p=1)
 
-course_dropout = AA.CoarseDropout(max_holes=5, max_height=8, max_width=8, p=1.0)
+course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=6, max_height=16, min_width=6, max_width=16, p=1.0)
 
 def get_image(image_id):
     return IMAGES[image_id].copy()
