@@ -31,7 +31,7 @@ def calculate_recall(y_true, y_pred):
 
 def print_recall(trainRecall, validRecall, title):
 
-    print('{} Recall'.format(title))
+    print('\n{} Recall'.format(title))
     trainRecall = {i: tr for i, tr in trainRecall}
     validRecall.sort(key=lambda x: x[1])
     for i, vr in validRecall:
@@ -54,17 +54,21 @@ class WeightedRecall(Callback):
 
         validGrapheme = calculate_class_weights(valid_ids, valid_predictions, 'grapheme_root')
         trainGrapheme = calculate_class_weights(train_ids, train_predictions, 'grapheme_root')
+        print_recall(trainGrapheme, validGrapheme, 'GraphemeRoot')
 
         validVowel = calculate_class_weights(valid_ids, valid_predictions, 'vowel_diacritic')
         trainVowel = calculate_class_weights(train_ids, train_predictions, 'vowel_diacritic')
+        print_recall(trainVowel, validVowel, 'GraphemeRoot')
 
         validConsonant = calculate_class_weights(valid_ids, valid_predictions, 'consonant_diacritic')
         trainConsonant = calculate_class_weights(train_ids, train_predictions, 'consonant_diacritic')
+        print_recall(trainConsonant, validConsonant, 'GraphemeRoot')
 
 
         valid_score, valid_gr_score, valid_vd_score, valid_cd_score = calculate_recall(valid_ids, valid_predictions)
         train_score, train_gr_score, train_vd_score, train_cd_score = calculate_recall(train_ids, train_predictions)
 
-        print('\n ==> Weighted Train Recal Score: {} ({} - {} - {})'.format(valid_score, valid_gr_score, valid_vd_score, valid_cd_score))
-        print('\n ==> Weighted Valid Recal Score: {} ({} - {} - {})'.format(train_score, train_gr_score, train_vd_score, train_cd_score))
+        print()
+        print('==> Weighted Train Recal Score: {} ({} - {} - {})'.format(valid_score, valid_gr_score, valid_vd_score, valid_cd_score))
+        print('==> Weighted Valid Recal Score: {} ({} - {} - {})'.format(train_score, train_gr_score, train_vd_score, train_cd_score))
         return
