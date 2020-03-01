@@ -16,17 +16,17 @@ augmentor = AA.Compose([
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    AA.OneOf([
-        AA.GridDistortion(num_steps=5, distort_limit=0.4, border_mode=cv2.BORDER_CONSTANT, value=0),
-        AA.ElasticTransform(alpha=5, sigma=30, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    ], p=0.9),
+    # AA.OneOf([
+    #     AA.GridDistortion(num_steps=5, distort_limit=0.4, border_mode=cv2.BORDER_CONSTANT, value=0),
+    #     AA.ElasticTransform(alpha=5, sigma=30, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # ], p=0.9),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
-    # AA.Cutout(num_holes=2, max_h_size=32, max_w_size=32, p=0.2),
 ], p=1)
 
+course_dropout = AA.CoarseDropout(max_holes=5, max_height=8, max_width=8, p=1.0)
 
 def get_image(image_id):
     return IMAGES[image_id].copy()
@@ -124,6 +124,8 @@ def plot_augmentations(random_id=None):
         aug_img = trim_image(aug_img)
         l0, r0, l1, r1 = get_cut_values(aug_img)
         aug_img = random_trim(aug_img.copy(), l0, r0, l1, r1 )
+        aug_img = pad_image(aug_img)
+        aug_img = course_dropout(image=aug_img)['image']
         axes[row][col].imshow(pad_image(aug_img), cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
@@ -134,6 +136,8 @@ def plot_augmentations(random_id=None):
             col += 1
     plt.tight_layout()
     plt.show()
+
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -194,10 +198,12 @@ class MultiOutputImageGenerator(Sequence):
                 x = trim_image(x)
                 l0, r0, l1, r1 = get_cut_values(x)
                 x = random_trim(x, l0, r0, l1, r1)
+                x = pad_image(x, self.is_train)
+                x = course_dropout(image=x)['image']
             else:
                 x = trim_image(x)
+                x = pad_image(x, self.is_train)
 
-            x = pad_image(x, self.is_train)
             plt.tight_layout()
             plt.show()
             X[i] = np.stack([x, x, x], axis=2)
