@@ -16,10 +16,10 @@ augmentor = AA.Compose([
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    # AA.OneOf([
-    #     AA.GridDistortion(num_steps=5, distort_limit=0.4, border_mode=cv2.BORDER_CONSTANT, value=0),
-    #     AA.ElasticTransform(alpha=5, sigma=30, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # ], p=0.9),
+    AA.OneOf([
+        AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+        AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    ], p=0.8),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
