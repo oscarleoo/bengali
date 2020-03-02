@@ -4,13 +4,20 @@ import matplotlib.pyplot as plt
 %matplotlib inline
 import cv2
 
+
+train = pd.read_csv('data/train.csv')
+train.head()
+
+train.shape
+
 ###################################
 #       SETTINGS
 ###################################
 
 
-trainIds = pd.read_csv('data/train.csv')
-trainIds.head()
+trainIds = pd.read_parquet('data/train_image_data_0.parquet')
+
+
 
 
 trainIds['grapheme_root'].value_counts().shape
@@ -79,3 +86,34 @@ hmm
 max(hmm['val_grapheme_root_categorical_accuracy'])
 max(hmm['val_vowel_diacritic_categorical_accuracy'])
 max(hmm['val_consonant_diacritic_categorical_accuracy'])
+
+
+
+
+train = pd.concat([
+    pd.read_parquet('data/train_image_data_0.parquet'),
+    pd.read_parquet('data/train_image_data_1.parquet'),
+    pd.read_parquet('data/train_image_data_2.parquet'),
+    pd.read_parquet('data/train_image_data_3.parquet')
+]).set_index('image_id', drop=True)
+
+
+train.shape
+
+train.head()
+import cv2
+import joblib
+
+original_images = joblib.load('data/original_images')
+for i, row in train[:10000].iterrows():
+    if i in original_images.keys():
+        continue
+    image = 255 - row.values
+    image = image.reshape(137, 236)
+    image = cv2.resize(image, (128, 128))
+    image = image.astype(np.uint8)
+    original_images[i] = image
+
+joblib.dump(original_images, 'data/original_images')
+
+    

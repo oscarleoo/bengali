@@ -7,7 +7,7 @@ import albumentations as AA
 import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
-IMAGES = joblib.load('data/images')
+IMAGES = joblib.load('data/original_images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
@@ -183,7 +183,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 64, 64, 3))
+        X = np.zeros((self.batch_size, 128, 128, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
@@ -194,18 +194,16 @@ class MultiOutputImageGenerator(Sequence):
             x = get_image(image_id)
             x = scale_values(x)
             if self.is_train:
-                x = augmentor(image=x)['image']
-                x = trim_image(x)
-                l0, r0, l1, r1 = get_cut_values(x)
-                x = random_trim(x, l0, r0, l1, r1)
-                x = pad_image(x, self.is_train)
+                # x = augmentor(image=x)['image']
+                # x = trim_image(x)
+                # l0, r0, l1, r1 = get_cut_values(x)
+                # x = random_trim(x, l0, r0, l1, r1)
+                # x = pad_image(x, self.is_train)
                 x = course_dropout(image=x)['image']
-            else:
-                x = trim_image(x)
-                x = pad_image(x, self.is_train)
+            # else:
+                # x = trim_image(x)
+                # x = pad_image(x, self.is_train)
 
-            plt.tight_layout()
-            plt.show()
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
