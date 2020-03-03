@@ -29,9 +29,6 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_height=32, min_width=12, max_width=32, p=1.0)
 
-def get_centered_image(image_id):
-    return CENTERED_IMAGES[image_id].copy()
-
 
 def get_image(image_id):
     image = IMAGES[image_id].copy()
@@ -74,8 +71,7 @@ def pad_image(image, train=False):
 def scale_values_max(image):
 
     image = image - image.min()
-    image = image / image.max()
-    return image
+    return image / image.max()
 
 
 def scale_values_percentile(image):
@@ -167,13 +163,10 @@ class MultiOutputImageGenerator(Sequence):
 
             image_id = row['image_id']
             x = get_image(image_id)
-            cropped = trim_image(get_centered_image(image_id))
-            cropped = pad_image(cropped)
-            cropped = scale_values_percentile(cropped)
-            x = np.stack([scale_values_max(x), scale_values_percentile(x), cropped], axis=2)
+            x = scale_values_max(x)
             if self.is_train:
                 x = course_dropout(image=x)['image']
-            X[i] = x
+            X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
@@ -205,10 +198,8 @@ class MultiOutputImageGenerator(Sequence):
         for image_id in self.images['image_id']:
 
             x = get_image(image_id)
-            cropped = trim_image(get_centered_image(image_id))
-            cropped = pad_image(cropped)
-            cropped = scale_values_percentile(cropped)
-            image = np.stack([scale_values_max(x), scale_values_percentile(x), cropped], axis=2)
+            x = scale_values_max(x)
+            image = np.stack([x, x, x], axis=2)
             images.append(image)
             if len(images) == 128:
                 predictions = model.predict(np.array(images))

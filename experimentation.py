@@ -98,18 +98,16 @@ train = pd.concat([
 ]).set_index('image_id', drop=True)
 
 
-train.shape
-
 train.head()
 import cv2
 import joblib
 len(original_images)
-original_images = joblib.load('data/original_images')
+original_images = {}
 for i, row in train.iterrows():
     if i in original_images.keys():
         continue
     image = 255 - row.values
-    image = image.reshape(137, 236)
+    image = image * (image >= 10)
     image = cv2.resize(image, (128, 128))
     image = image.astype(np.uint8)
     original_images[i] = image
