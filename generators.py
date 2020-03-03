@@ -32,7 +32,7 @@ course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_
 
 def get_image(image_id):
     image = IMAGES[image_id].copy()
-    image = image * (image >= 20)
+    # image = image * (image >= 20)
     return image
 
 
@@ -70,8 +70,7 @@ def pad_image(image, train=False):
 
 
 def scale_values_max(image):
-
-    image = image - image.min()
+    # image = image - image.min()
     return image / image.max()
 
 
