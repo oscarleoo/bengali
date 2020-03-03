@@ -32,7 +32,7 @@ course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_
 
 def get_image(image_id):
     image = IMAGES[image_id].copy()
-    return image * (image >= 20)
+    return image
 
 
 def trim_image(image):
