@@ -12,21 +12,21 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    AA.OneOf([
-        AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
-        AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    ], p=0.8),
+    # AA.OneOf([
+    #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+    #     AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # ], p=0.8),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
 ], p=1)
 
-course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=6, max_height=16, min_width=6, max_width=16, p=1.0)
+course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_height=32, min_width=12, max_width=32, p=1.0)
 
 def get_image(image_id):
     return IMAGES[image_id].copy()
@@ -114,18 +114,13 @@ def plot_augmentations(random_id=None):
     image = scale_values(image)
 
     plt.figure(figsize=(5, 5))
-    plt.imshow(pad_image(trim_image(image)), cmap='gray')
+    plt.imshow(image, cmap='gray')
     plt.show()
 
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
-        aug_img = augmentor(image=image.copy())['image']
-        aug_img = trim_image(aug_img)
-        l0, r0, l1, r1 = get_cut_values(aug_img)
-        aug_img = random_trim(aug_img.copy(), l0, r0, l1, r1 )
-        aug_img = pad_image(aug_img)
-        aug_img = course_dropout(image=aug_img)['image']
+        aug_img = course_dropout(image=image)['image']
         axes[row][col].imshow(pad_image(aug_img), cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
@@ -137,7 +132,7 @@ def plot_augmentations(random_id=None):
     plt.tight_layout()
     plt.show()
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
