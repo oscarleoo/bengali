@@ -8,34 +8,40 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
 IMAGES = joblib.load('data/original_images')
+CENTERED_IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
-augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.RandomContrast(limit=0.2, p=1.0),
-    # AA.Blur(blur_limit=3, p=1.0),
-    # AA.OneOf([
-    #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
-    #     AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # ], p=0.8),
-    # AA.OneOf([
-    #     AA.GaussianBlur(),
-    #     AA.Blur(blur_limit=3),
-    # ], p=0.5),
-], p=1)
+# augmentor = AA.Compose([
+#     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+#     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+#     # AA.RandomContrast(limit=0.2, p=1.0),
+#     # AA.Blur(blur_limit=3, p=1.0),
+#     # AA.OneOf([
+#     #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+#     #     AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+#     # ], p=0.8),
+#     # AA.OneOf([
+#     #     AA.GaussianBlur(),
+#     #     AA.Blur(blur_limit=3),
+#     # ], p=0.5),
+# ], p=1)
 
 course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_height=32, min_width=12, max_width=32, p=1.0)
 
+def get_centered_image(image_id):
+    return CENTERED_IMAGES[image_id].copy()
+
+
 def get_image(image_id):
-    return IMAGES[image_id].copy()
+    image = IMAGES[image_id].copy()
+    return image * (image >= 20)
 
 
 def trim_image(image):
 
-    sum_axis_0 = image.sum(axis=0) > 0.1
-    sum_axis_1 = image.sum(axis=1) > 0.1
+    sum_axis_0 = image.sum(axis=0) > 100
+    sum_axis_1 = image.sum(axis=1) > 100
     image = image[sum_axis_1, :]
     image = image[:, sum_axis_0]
 
@@ -62,47 +68,21 @@ def pad_image(image, train=False):
             diff = int(missing / 2)
         image = np.concatenate([np.zeros((diff, width)), image, np.zeros((missing - diff, width))], axis=0)
 
-    return cv2.resize(image, (64, 64))
+    return cv2.resize(image, (128, 128))
 
 
-def scale_values(image):
+def scale_values_max(image):
+
+    image = image - image.min()
+    image = image / image.max()
+    return image
+
+
+def scale_values_percentile(image):
 
     image = image - image.min()
     image = image / np.percentile(image, 99)
     return image.clip(0, 1)
-
-
-def get_cut_values(image):
-    height, width = image.shape[:2]
-    for l0, s in enumerate(image.sum(axis=0)):
-        if s >= 5: break
-    for r0, s in enumerate(np.flip(image.sum(axis=0))):
-        if s >= 5: break
-    for l1, s in enumerate(image.sum(axis=1)):
-        if s >= 5: break
-    for r1, s in enumerate(np.flip(image.sum(axis=1))):
-        if s >= 5: break
-
-    return l0, r0, l1, r1
-
-
-def random_trim(image, l0, r0, l1, r1):
-
-    height, width = image.shape[:2]
-
-    p = np.array([l0 + 2, r0 + 2, l1 + 2, r1 + 2]) / (l0 + r0 + l1 + r1 + 8)
-    r = np.random.choice(['l0', 'r0', 'l1', 'r1'], p=p)
-
-    if r == 'l0':
-        image = image[np.random.randint(l1 + 1):,:]
-    elif r == 'r0':
-        image = image[:np.random.randint(height - r1, height + 1),:]
-    elif r == 'l1':
-        image = image[:,np.random.randint(l0 + 1):]
-    elif r == 'r1':
-        image = image[:,:np.random.randint(width - r0, width + 1)]
-
-    return image
 
 
 def plot_augmentations(random_id=None):
@@ -187,19 +167,13 @@ class MultiOutputImageGenerator(Sequence):
 
             image_id = row['image_id']
             x = get_image(image_id)
-            x = scale_values(x)
+            cropped = trim_image(get_centered_image(image_id))
+            cropped = pad_image(cropped)
+            cropped = scale_values_percentile(cropped)
+            x = np.stack([scale_values_max(x), scale_values_percentile(x), cropped], axis=2)
             if self.is_train:
-                # x = augmentor(image=x)['image']
-                # x = trim_image(x)
-                # l0, r0, l1, r1 = get_cut_values(x)
-                # x = random_trim(x, l0, r0, l1, r1)
-                # x = pad_image(x, self.is_train)
                 x = course_dropout(image=x)['image']
-            # else:
-                # x = trim_image(x)
-                # x = pad_image(x, self.is_train)
-
-            X[i] = np.stack([x, x, x], axis=2)
+            X[i] = x
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
@@ -229,9 +203,12 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_predictions = []
         images = []
         for image_id in self.images['image_id']:
-            image = get_image(image_id)
-            image = scale_values(image)
-            image = np.stack([image, image, image], axis=2)
+
+            x = get_image(image_id)
+            cropped = trim_image(get_centered_image(image_id))
+            cropped = pad_image(cropped)
+            cropped = scale_values_percentile(cropped)
+            image = np.stack([scale_values_max(x), scale_values_percentile(x), cropped], axis=2)
             images.append(image)
             if len(images) == 128:
                 predictions = model.predict(np.array(images))
@@ -248,6 +225,7 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
+
 
 
 def get_data_generators(split, batch_size):

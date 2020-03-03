@@ -103,9 +103,9 @@ train.shape
 train.head()
 import cv2
 import joblib
-
+len(original_images)
 original_images = joblib.load('data/original_images')
-for i, row in train[:10000].iterrows():
+for i, row in train.iterrows():
     if i in original_images.keys():
         continue
     image = 255 - row.values
@@ -116,4 +116,4 @@ for i, row in train[:10000].iterrows():
 
 joblib.dump(original_images, 'data/original_images')
 
-    
+print('hej')
