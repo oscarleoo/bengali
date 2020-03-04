@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
 IMAGES = joblib.load('data/original_images')
+IMAGES = {_id: cv2.resize(image, (128, 128) for _id, image in IMAGES.items()}
+PERCENTILES = {_id: np.percentile(image, 99) for image in IMAGES.items()}
+
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
@@ -28,13 +31,6 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 course_dropout1 = AA.CoarseDropout(min_holes=4, max_holes=10, min_height=4, max_height=32, min_width=4, max_width=32, p=1.0)
 course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=64, p=1.0)
-
-def get_image(image_id):
-    return cv2.resize(IMAGES[image_id].copy(), (128, 128))
-
-def scale_values_max(image):
-    image = image - image.min()
-    return image / image.max()
 
 
 def scale_values(image):
@@ -126,8 +122,9 @@ class MultiOutputImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
 
             image_id = row['image_id']
-            x = get_image(image_id)
-            x = scale_values(x)
+            x = IMAGES[image_id].copy()
+            x = x / PERCENTILES[image_id]
+            x = x.clip(0, 1)
             if self.is_train:
                 if np.random.rand() <= 0.5:
                     x = course_dropout1(image=x)['image']
@@ -165,8 +162,9 @@ class MultiOutputImageGenerator(Sequence):
         images = []
         for image_id in self.images['image_id']:
 
-            x = get_image(image_id)
-            x = scale_values(x)
+            x = IMAGES[image_id].copy()
+            x = x / PERCENTILES[image_id]
+            x = x.clip(0, 1)
             image = np.stack([x, x, x], axis=2)
             images.append(image)
             if len(images) == 128:
