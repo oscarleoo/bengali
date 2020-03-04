@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
 IMAGES = joblib.load('data/original_images')
-CENTERED_IMAGES = joblib.load('data/images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
+
+plt.imshow(IMAGES['Train_100'])
 
 # augmentor = AA.Compose([
 #     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
@@ -32,42 +33,7 @@ course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_
 
 def get_image(image_id):
     image = IMAGES[image_id].copy()
-    # image = image * (image >= 20)
     return image
-
-
-def trim_image(image):
-
-    sum_axis_0 = image.sum(axis=0) > 100
-    sum_axis_1 = image.sum(axis=1) > 100
-    image = image[sum_axis_1, :]
-    image = image[:, sum_axis_0]
-
-    return image
-
-
-def pad_image(image, train=False):
-
-    height, width = image.shape[:2]
-    size = max([width, height])
-
-    if width < size:
-        missing = size - width
-        if train:
-            diff = np.random.randint(missing)
-        else:
-            diff = int(missing / 2)
-        image = np.concatenate([np.zeros((height, diff)), image, np.zeros((height, missing - diff))], axis=1)
-    if height < size:
-        missing = size - height
-        if train:
-            diff = np.random.randint(missing)
-        else:
-            diff = int(missing / 2)
-        image = np.concatenate([np.zeros((diff, width)), image, np.zeros((missing - diff, width))], axis=0)
-
-    return cv2.resize(image, (128, 128))
-
 
 def scale_values_max(image):
     image = image - image.min()
@@ -110,8 +76,6 @@ def plot_augmentations(random_id=None):
             col += 1
     plt.tight_layout()
     plt.show()
-
-plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -157,7 +121,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 137, 236, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
@@ -223,6 +187,21 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
+
+    def get_output(self, model):
+        grapheme_root_predictions = {}
+        vowel_diacritic_predictions = {}
+        consonant_diacritic_predictions = {}
+        for image_id in self.images['image_id']:
+            x = get_image(image_id)
+            x = scale_values(x)
+            image = np.stack([x, x, x], axis=2)
+            output = model.predict(np.expand_dims(image, 0))
+            grapheme_root_predictions[image_id] = output[0][0]
+            vowel_diacritic_predictions[image_id] = output[0][1]
+            consonant_diacritic_predictions[image_id] = output[0][2]
+
+        return grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
 
 
 def get_data_generators(split, batch_size):

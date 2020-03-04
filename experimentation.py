@@ -107,11 +107,20 @@ for i, row in train.iterrows():
     if i in original_images.keys():
         continue
     image = 255 - row.values
-    image = image * (image >= 10)
-    image = cv2.resize(image, (128, 128))
+    image = image.reshape(137, 236)
     image = image.astype(np.uint8)
     original_images[i] = image
 
 joblib.dump(original_images, 'data/original_images')
 
 print('hej')
+
+
+
+plt.imshow(image)
+
+
+
+
+
+plt.imshow(image.clip(0, 10))
