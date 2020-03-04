@@ -27,8 +27,8 @@ trainIds = trainIds.set_index('image_id', drop=True)
 #     # ], p=0.5),
 # ], p=1)
 
-course_dropout = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_height=32, min_width=12, max_width=32, p=1.0)
-
+course_dropout1 = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_height=32, min_width=12, max_width=32, p=1.0)
+course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=62, p=1.0)
 
 def get_image(image_id):
     image = IMAGES[image_id].copy()
@@ -70,13 +70,11 @@ def pad_image(image, train=False):
 
 
 def scale_values_max(image):
-    # image = image - image.min()
+    image = image - image.min()
     return image / image.max()
 
 
-def scale_values_percentile(image):
-
-    image = image - image.min()
+def scale_values(image):
     image = image / np.percentile(image, 99)
     return image.clip(0, 1)
 
@@ -96,7 +94,12 @@ def plot_augmentations(random_id=None):
     fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
-        aug_img = course_dropout(image=image)['image']
+
+        if np.random.rand() <= 0.5:
+            aug_img = course_dropout1(image=image)['image']
+        else:
+            aug_img = course_dropout2(image=image)['image']
+
         axes[row][col].imshow(pad_image(aug_img), cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
@@ -108,7 +111,7 @@ def plot_augmentations(random_id=None):
     plt.tight_layout()
     plt.show()
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -165,7 +168,11 @@ class MultiOutputImageGenerator(Sequence):
             x = get_image(image_id)
             x = scale_values_max(x)
             if self.is_train:
-                x = course_dropout(image=x)['image']
+                if np.random.rand() <= 0.5:
+                    x = course_dropout1(image=x)['image']
+                else:
+                    x = course_dropout2(image=x)['image']
+
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
@@ -216,7 +223,6 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
-
 
 
 def get_data_generators(split, batch_size):
