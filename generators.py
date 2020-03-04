@@ -103,7 +103,7 @@ class MultiOutputImageGenerator(Sequence):
         if self.is_train:
             batchIds = []
 
-            for grapheme_root in [i for i in range(168)]::
+            for grapheme_root in [i for i in range(168)]:
                 batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
 
             for vowel in [i for i in range(11)]:
