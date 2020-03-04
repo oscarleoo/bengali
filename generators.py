@@ -166,7 +166,7 @@ class MultiOutputImageGenerator(Sequence):
 
             image_id = row['image_id']
             x = get_image(image_id)
-            x = scale_values_max(x)
+            x = scale_values(x)
             if self.is_train:
                 if np.random.rand() <= 0.5:
                     x = course_dropout1(image=x)['image']
@@ -205,7 +205,7 @@ class MultiOutputImageGenerator(Sequence):
         for image_id in self.images['image_id']:
 
             x = get_image(image_id)
-            x = scale_values_max(x)
+            x = scale_values(x)
             image = np.stack([x, x, x], axis=2)
             images.append(image)
             if len(images) == 128:
