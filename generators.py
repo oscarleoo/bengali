@@ -11,8 +11,6 @@ IMAGES = joblib.load('data/original_images')
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
-plt.imshow(IMAGES['Train_100'])
-
 # augmentor = AA.Compose([
 #     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
 #     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
@@ -28,12 +26,11 @@ plt.imshow(IMAGES['Train_100'])
 #     # ], p=0.5),
 # ], p=1)
 
-course_dropout1 = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=12, max_height=32, min_width=12, max_width=32, p=1.0)
-course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=62, p=1.0)
+course_dropout1 = AA.CoarseDropout(min_holes=4, max_holes=10, min_height=8, max_height=24, min_width=8, max_width=24, p=1.0)
+course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=3, min_height=16, max_height=48, min_width=16, max_width=48, p=1.0)
 
 def get_image(image_id):
-    image = IMAGES[image_id].copy()
-    return image
+    return cv2.resize(IMAGES[image_id].copy(), (118, 69))
 
 def scale_values_max(image):
     image = image - image.min()
@@ -57,7 +54,7 @@ def plot_augmentations(random_id=None):
     plt.imshow(image, cmap='gray')
     plt.show()
 
-    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
+    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 9))
     row, col = 0, 0
     for i in range(16):
 
@@ -66,7 +63,7 @@ def plot_augmentations(random_id=None):
         else:
             aug_img = course_dropout2(image=image)['image']
 
-        axes[row][col].imshow(pad_image(aug_img), cmap='gray')
+        axes[row][col].imshow(aug_img, cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
         if col == 3:
@@ -76,7 +73,6 @@ def plot_augmentations(random_id=None):
             col += 1
     plt.tight_layout()
     plt.show()
-
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -107,9 +103,7 @@ class MultiOutputImageGenerator(Sequence):
         if self.is_train:
             batchIds = []
 
-            grapheme_root_list = [i for i in range(46)]
-            np.random.shuffle(grapheme_root_list)
-            for grapheme_root in grapheme_root_list[:]:
+            for grapheme_root in [i for i in range(168)]::
                 batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
 
             for vowel in [i for i in range(11)]:
@@ -123,7 +117,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 137, 236, 3))
+        X = np.zeros((self.batch_size, 69, 118, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
