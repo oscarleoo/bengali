@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (128, 128) for _id, image in IMAGES.items()}
-PERCENTILES = {_id: np.percentile(image, 99) for image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
+PERCENTILES = {_id: np.percentile(image, 99)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
