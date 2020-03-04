@@ -26,11 +26,11 @@ trainIds = trainIds.set_index('image_id', drop=True)
 #     # ], p=0.5),
 # ], p=1)
 
-course_dropout1 = AA.CoarseDropout(min_holes=4, max_holes=10, min_height=8, max_height=24, min_width=8, max_width=24, p=1.0)
-course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=3, min_height=16, max_height=48, min_width=16, max_width=48, p=1.0)
+course_dropout1 = AA.CoarseDropout(min_holes=4, max_holes=10, min_height=4, max_height=32, min_width=4, max_width=32, p=1.0)
+course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=64, p=1.0)
 
 def get_image(image_id):
-    return cv2.resize(IMAGES[image_id].copy(), (118, 69))
+    return cv2.resize(IMAGES[image_id].copy(), (128, 128))
 
 def scale_values_max(image):
     image = image - image.min()
@@ -54,7 +54,7 @@ def plot_augmentations(random_id=None):
     plt.imshow(image, cmap='gray')
     plt.show()
 
-    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 9))
+    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12))
     row, col = 0, 0
     for i in range(16):
 
@@ -73,6 +73,7 @@ def plot_augmentations(random_id=None):
             col += 1
     plt.tight_layout()
     plt.show()
+
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -117,7 +118,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 69, 118, 3))
+        X = np.zeros((self.batch_size, 128, 128, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
