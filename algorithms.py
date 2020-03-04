@@ -1,16 +1,22 @@
 import efficientnet.keras as efn
-from keras.layers import Dense, GlobalAveragePooling2D, Dropout
+from keras.layers import Dense, GlobalAveragePooling2D, GlobalMaxPooling2D, Dropout, concatenate
 from keras.models import Model
 
 def get_b0_backbone():
     backbone = efn.EfficientNetB0(input_shape=(137, 236, 3), include_top=False,  weights='imagenet')
-    backbone_output = GlobalAveragePooling2D()(backbone.output)
+    backbone_output = concatenate([
+        GlobalAveragePooling2D()(backbone.output),
+        GlobalMaxPooling2D()(backbone.output),
+    ])
     return backbone, backbone_output
 
 
 def get_b1_backbone():
     backbone = efn.EfficientNetB1(input_shape=(64, 64, 3), include_top=False,  weights='imagenet')
-    backbone_output = GlobalAveragePooling2D()(backbone.output)
+    backbone_output = concatenate([
+        GlobalAveragePooling2D()(backbone.output),
+        GlobalMaxPooling2D()(backbone.output),
+    ])
     return backbone, backbone_output
 
 
