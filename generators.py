@@ -29,8 +29,8 @@ trainIds = trainIds.set_index('image_id', drop=True)
 #     # ], p=0.5),
 # ], p=1)
 
-course_dropout1 = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=16, min_width=4, max_width=16, p=1.0)
-course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=16, max_height=64, min_width=16, max_width=64, p=1.0)
+course_dropout1 = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=32, min_width=4, max_width=32, p=1.0)
+course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=64, p=1.0)
 
 
 def scale_values(image):
@@ -71,7 +71,7 @@ def plot_augmentations(random_id=None):
     plt.show()
 
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
