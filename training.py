@@ -74,7 +74,7 @@ def train_full_model(model, name, settings, retrain=False, recall=False):
     loss, loss_weights = get_loss()
 
     print('Preparing Callbacks...')
-    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.3, patience=3, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
     model_checkpoint = ModelCheckpoint('results/{}/train_full.h5'.format(name), monitor='val_grapheme_root_loss', verbose=1, save_best_only=True, save_weights_only=True)
     if recall:
