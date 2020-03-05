@@ -1,3 +1,4 @@
+import cv2
 import joblib
 import numpy as np
 import pandas as pd
@@ -9,11 +10,11 @@ IMAGES = joblib.load('data/original_images')
 
 df = pd.read_csv('data/train.csv')
 splits = pd.read_csv('splits/split1/split.csv')
-valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
+valid_ids = list(splits[splits['split'] == 'valid']['image_id'])
 valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
 model = connect_simple_head(*get_b0_backbone())
-model.load_weights('results/train_full.h5')
-model.save("results/model.h5")
+model.load_weights('results/split1/train_full.h5')
+model.save("results/split1/model.h5")
 
 
 def scale_values(image):
@@ -26,7 +27,9 @@ vowel_diacritic_predictions = {}
 consonant_diacritic_predictions = {}
 for image_id in valid_ids:
     x = IMAGES[image_id].copy()
-    x = scale_values(x)
+    x = cv2.resize(x, (128, 128))
+    x = x / np.percentile(x, 99)
+    x = x.clip(0, 1)
     image = np.stack([x, x, x], axis=2)
     output = model.predict(np.expand_dims(image, 0))
     grapheme_root_predictions[image_id] = output[0]
@@ -73,6 +76,8 @@ def random_optimize(initial_weights, y_true, y_pred, step_size, improvement_limi
         else:
             since_improvement += 1
 
+
+
     return best_weights, best_value
 
 
@@ -81,13 +86,13 @@ Y_true = valid_df.set_index('image_id')['vowel_diacritic']
 Y_pred = vowel_diacritic_predictions
 vweights = [1 for i in range(Y_true.max() + 1)]
 print('Starting value:', calculate_recall(vweights, Y_true, Y_pred))
-vweights, new_value = random_optimize(vweights, Y_true, Y_pred, 0.5, 100)
+vweights, new_value = random_optimize(vweights, Y_true, Y_pred, 0.4, 100)
 print(new_value)
 vweights, new_value = random_optimize(vweights, Y_true, Y_pred, 0.2, 100)
 print(new_value)
 vweights, new_value = random_optimize(vweights, Y_true, Y_pred, 0.1, 100)
 print(new_value)
-vweights, new_value = random_optimize(vweights, Y_true, Y_pred, 0.01, 100)
+vweights, new_value = random_optimize(vweights, Y_true, Y_pred, 0.02, 100)
 print(new_value)
 vweights
 
@@ -95,29 +100,28 @@ Y_true = valid_df.set_index('image_id')['consonant_diacritic']
 Y_pred = consonant_diacritic_predictions
 cweights = [1 for i in range(Y_true.max() + 1)]
 print('Starting value:', calculate_recall(cweights, Y_true, Y_pred))
-cweights, new_value = random_optimize(cweights, Y_true, Y_pred, 0.5, 100)
+cweights, new_value = random_optimize(cweights, Y_true, Y_pred, 0.4, 100)
 print(new_value)
 cweights, new_value = random_optimize(cweights, Y_true, Y_pred, 0.2, 100)
 print(new_value)
 cweights, new_value = random_optimize(cweights, Y_true, Y_pred, 0.1, 100)
 print(new_value)
-cweights, new_value = random_optimize(cweights, Y_true, Y_pred, 0.01, 100)
+cweights, new_value = random_optimize(cweights, Y_true, Y_pred, 0.02, 100)
 print(new_value)
 
 Y_true = valid_df.set_index('image_id')['grapheme_root']
 Y_pred = grapheme_root_predictions
 gweights = [1 for i in range(Y_true.max() + 1)]
 print('Starting value:', calculate_recall(gweights, Y_true, Y_pred))
-gweights, new_value = random_optimize(gweights, Y_true, Y_pred, 0.5, 200)
+gweights, new_value = random_optimize(gweights, Y_true, Y_pred, 0.4, 200)
 print(new_value)
 gweights, new_value = random_optimize(gweights, Y_true, Y_pred, 0.2, 200)
 print(new_value)
 gweights, new_value = random_optimize(gweights, Y_true, Y_pred, 0.1, 200)
 print(new_value)
-gweights, new_value = random_optimize(gweights, Y_true, Y_pred, 0.01, 200)
+gweights, new_value = random_optimize(gweights, Y_true, Y_pred, 0.02, 200)
 print(new_value)
 
-gweights
 
 def weighted_recall(grapheme_weights, vowel_weights, consonant_weights):
 
