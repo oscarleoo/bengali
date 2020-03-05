@@ -62,7 +62,7 @@ def pretrain_model(model, name, settings):
     model.save_weights('results/{}/pretrain_model.h5'.format(name))
 
 
-def train_full_model(model, name, settings, retrain=False):
+def train_full_model(model, name, settings, retrain=False, recall=False):
 
     print('Getting Generators...')
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
@@ -74,17 +74,21 @@ def train_full_model(model, name, settings, retrain=False):
     loss, loss_weights = get_loss()
 
     print('Preparing Callbacks...')
-    weighted_recall = WeightedRecall(train_generator, valid_generator)
     reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=3, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
     model_checkpoint = ModelCheckpoint('results/{}/train_full.h5'.format(name), monitor='val_grapheme_root_loss', verbose=1, save_best_only=True, save_weights_only=True)
+    if recall:
+        weighted_recall = WeightedRecall(train_generator, valid_generator)
+        callbacks = [weighted_recall, reduce_lr, early_stopping, model_checkpoint]
+    else:
+        callbacks = [reduce_lr, early_stopping, model_checkpoint]
 
     print('Training Model...')
     model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[weighted_recall, reduce_lr, early_stopping, model_checkpoint]
+        callbacks=callbacks
     )
 
     print('Saving Model...')
