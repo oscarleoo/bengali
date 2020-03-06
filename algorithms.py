@@ -14,7 +14,7 @@ def generalized_mean_pool_2d(X):
 
 def get_b0():
 
-    backbone = efn.EfficientNetB0(input_shape=(128, 128, 3), include_top=False,  pooling=None, classes=None, weights='imagenet')
+    backbone = efn.EfficientNetB0(input_shape=(128, 128, 3), include_top=False,  pooling=None, classes=None, weights='noisy-student')
 
     for layer in backbone.layers:
         layer.trainable = True
@@ -58,3 +58,6 @@ def connect_simple_head(backbone, backbone_output):
     consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(backbone_output)
 
     return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
+
+
+model.summary()

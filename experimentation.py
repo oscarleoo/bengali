@@ -106,7 +106,6 @@ original_images = {}
 for i, row in train.iterrows():
     if i in original_images.keys():
         continue
-    image = 255 - row.values
     image = image.reshape(137, 236)
     image = image.astype(np.uint8)
     original_images[i] = image
@@ -114,6 +113,7 @@ for i, row in train.iterrows():
 joblib.dump(original_images, 'data/original_images')
 
 print('hej')
+
 
 
 

@@ -7,9 +7,14 @@ import albumentations as AA
 import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
+from utils.grid_mask import GridMask
+
 IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
-PERCENTILES = {_id: np.percentile(image, 99) for _id, image in IMAGES.items()}
+PERCENTILES = {_id: image.max() for _id, image in IMAGES.items()}
+
+
+plt.imshow(IMAGES[121])
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -19,29 +24,20 @@ augmentor = AA.Compose([
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    AA.OneOf([
-        AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=16, min_width=4, max_width=16, p=1.0),
-        AA.CoarseDropout(min_holes=1, max_holes=2, min_height=16, max_height=64, min_width=16, max_width=64, p=1.0)
-    ], p=0.8),
+    GridMask(num_grid=(3, 7), rotate=10),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
 ], p=1)
 
+def plot_augmentations():
 
-def scale_values(image):
-    image = image / np.percentile(image, 99)
-    return image.clip(0, 1)
+    _id = np.random.choice(list(IMAGES.keys()))
 
-
-def plot_augmentations(random_id=None):
-
-    if not random_id:
-        random_id = np.random.choice(list(IMAGES.keys()))
-
-    image = get_image(random_id)
-    image = scale_values(image)
+    image = IMAGES[_id].copy()
+    # image = image / 100
+    # image = image.clip(0, 1)
 
     plt.figure(figsize=(5, 5))
     plt.imshow(image, cmap='gray')
@@ -51,7 +47,7 @@ def plot_augmentations(random_id=None):
     row, col = 0, 0
     for i in range(16):
 
-        aug_img = augmentor(image=image)['image']
+        aug_img = augmentor(image=image.copy())['image']
 
         axes[row][col].imshow(aug_img, cmap='gray')
         axes[row][col].set_xticks([])
@@ -64,7 +60,6 @@ def plot_augmentations(random_id=None):
     plt.tight_layout()
     plt.show()
 
-# plot_augmentations()
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -175,20 +170,6 @@ class MultiOutputImageGenerator(Sequence):
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
-    def get_output(self, model):
-        grapheme_root_predictions = {}
-        vowel_diacritic_predictions = {}
-        consonant_diacritic_predictions = {}
-        for image_id in self.images['image_id']:
-            x = get_image(image_id)
-            x = scale_values(x)
-            image = np.stack([x, x, x], axis=2)
-            output = model.predict(np.expand_dims(image, 0))
-            grapheme_root_predictions[image_id] = output[0][0]
-            vowel_diacritic_predictions[image_id] = output[0][1]
-            consonant_diacritic_predictions[image_id] = output[0][2]
-
-        return grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
 
 
 def get_data_generators(split, batch_size):
