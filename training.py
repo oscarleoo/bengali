@@ -32,13 +32,13 @@ class FixedDropout(Dropout):
 def get_loss():
 
     return {
-    	'grapheme_root': 'categorical_crossentropy',
-    	'vowel_diacritic': 'categorical_crossentropy',
-        'consonant_diacritic': 'categorical_crossentropy'
+    	'grapheme_root': 'binary_crossentropy',
+    	'vowel_diacritic': 'binary_crossentropy',
+        'consonant_diacritic': 'binary_crossentropy'
     }, {
-        'grapheme_root': 2,
-        'vowel_diacritic': 1,
-        'consonant_diacritic': 1
+        'grapheme_root': 90,
+        'vowel_diacritic': 6,
+        'consonant_diacritic': 4
     }
 
 

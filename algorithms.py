@@ -23,9 +23,9 @@ def get_b0():
     lambda_layer.trainable_weights.extend([gm_exp])
     gem = lambda_layer(backbone.output)
 
-    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(gem)
-    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(gem)
-    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(gem)
+    grapheme_root_head = Dense(168, activation='sigmoid', name='grapheme_root')(gem)
+    vowel_diacritic_head = Dense(11, activation='sigmoid', name='vowel_diacritic')(gem)
+    consonant_diacritic_head = Dense(7, activation='sigmoid', name='consonant_diacritic')(gem)
 
     return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
 
