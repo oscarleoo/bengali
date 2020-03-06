@@ -122,10 +122,6 @@ class MultiOutputImageGenerator(Sequence):
             x = x.clip(0, 1)
             if self.is_train:
                 x = augmentor(image=x)['image']
-                if np.random.rand() <= 0.5:
-                    x = course_dropout1(image=x)['image']
-                else:
-                    x = course_dropout2(image=x)['image']
 
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
