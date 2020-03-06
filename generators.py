@@ -13,9 +13,6 @@ IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
 PERCENTILES = {_id: image.max() for _id, image in IMAGES.items()}
 
-
-plt.imshow(IMAGES[121])
-
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 

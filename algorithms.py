@@ -58,6 +58,3 @@ def connect_simple_head(backbone, backbone_output):
     consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(backbone_output)
 
     return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
-
-
-model.summary()
