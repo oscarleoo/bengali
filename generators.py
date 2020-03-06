@@ -14,23 +14,23 @@ PERCENTILES = {_id: np.percentile(image, 99) for _id, image in IMAGES.items()}
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
-# augmentor = AA.Compose([
-#     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-#     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-#     # AA.RandomContrast(limit=0.2, p=1.0),
-#     # AA.Blur(blur_limit=3, p=1.0),
-#     # AA.OneOf([
-#     #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
-#     #     AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
-#     # ], p=0.8),
-#     # AA.OneOf([
-#     #     AA.GaussianBlur(),
-#     #     AA.Blur(blur_limit=3),
-#     # ], p=0.5),
-# ], p=1)
+augmentor = AA.Compose([
+    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.RandomContrast(limit=0.2, p=1.0),
+    # AA.Blur(blur_limit=3, p=1.0),
+    # AA.OneOf([
+    #     AA.GridDistortion(num_steps=3, distort_limit=0.2, border_mode=cv2.BORDER_CONSTANT, value=0),
+    #     AA.ElasticTransform(alpha=5, sigma=10, alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # ], p=0.8),
+    # AA.OneOf([
+    #     AA.GaussianBlur(),
+    #     AA.Blur(blur_limit=3),
+    # ], p=0.5),
+], p=1)
 
-course_dropout1 = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=32, min_width=4, max_width=32, p=1.0)
-course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=64, p=1.0)
+course_dropout1 = AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=16, min_width=4, max_width=16, p=1.0)
+course_dropout2 = AA.CoarseDropout(min_holes=1, max_holes=2, min_height=16, max_height=64, min_width=16, max_width=64, p=1.0)
 
 
 def scale_values(image):
@@ -54,10 +54,11 @@ def plot_augmentations(random_id=None):
     row, col = 0, 0
     for i in range(16):
 
+        aug_img = augmentor(image=image)['image']
         if np.random.rand() <= 0.5:
-            aug_img = course_dropout1(image=image)['image']
+            aug_img = course_dropout1(image=aug_img)['image']
         else:
-            aug_img = course_dropout2(image=image)['image']
+            aug_img = course_dropout2(image=aug_img)['image']
 
         axes[row][col].imshow(aug_img, cmap='gray')
         axes[row][col].set_xticks([])
@@ -71,10 +72,8 @@ def plot_augmentations(random_id=None):
     plt.show()
 
 
-# plot_augmentations()
 
-
-class MultiOutputImageGenerator(Sequence):
+eclass MultiOutputImageGenerator(Sequence):
 
     def __init__(self, images, batch_size, is_train):
         self.images = images
@@ -129,6 +128,7 @@ class MultiOutputImageGenerator(Sequence):
             x = x / PERCENTILES[image_id]
             x = x.clip(0, 1)
             if self.is_train:
+                x = augmentor(image=x)['image']
                 if np.random.rand() <= 0.5:
                     x = course_dropout1(image=x)['image']
                 else:
