@@ -73,7 +73,7 @@ def plot_augmentations(random_id=None):
 
 
 
-eclass MultiOutputImageGenerator(Sequence):
+class MultiOutputImageGenerator(Sequence):
 
     def __init__(self, images, batch_size, is_train):
         self.images = images
