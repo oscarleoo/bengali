@@ -174,7 +174,7 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_predictions = []
         images = []
         for image_id in self.images['image_id']:
-            x = get_image(row['image_id'])
+            x = get_image(image_id)
             image = np.stack([x, x, x], axis=2)
             images.append(image)
             if len(images) == 128:
@@ -194,7 +194,6 @@ class MultiOutputImageGenerator(Sequence):
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
 
-
 def get_data_generators(split, batch_size):
 
     df = pd.read_csv('data/train.csv')
@@ -208,3 +207,8 @@ def get_data_generators(split, batch_size):
     train_generator = MultiOutputImageGenerator(train_df, batch_size, True)
     valid_generator = MultiOutputImageGenerator(valid_df, batch_size, False)
     return train_generator, valid_generator
+
+
+168 / 186
+11/ 186
+7 / 186
