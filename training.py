@@ -54,7 +54,6 @@ def pretrain_model(model, name, settings):
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
-        callbacks=[weighted_recall]
     )
     with open('results/{}/pretrain_history'.format(name), 'wb') as f:
         pickle.dump(history.history, f)
