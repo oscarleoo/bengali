@@ -10,29 +10,36 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
-PERCENTILES = {_id: image.max() for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
+
 augmentor = AA.Compose([
-    # AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    GridMask(num_grid=(3, 7), rotate=10),
+    GridMask(num_grid=(3, 7), rotate=10, p=0.5),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
     # ], p=0.5),
 ], p=1)
 
+
+def get_image(image_id):
+    x = IMAGES[image_id].copy()
+    x = x / x.max()
+    return x.clip(0, 1)
+
+
 def plot_augmentations():
 
     _id = np.random.choice(list(IMAGES.keys()))
 
-    image = IMAGES[_id].copy()
+    image = get_image(_id)
     # image = image / 100
     # image = image.clip(0, 1)
 
@@ -56,6 +63,9 @@ def plot_augmentations():
             col += 1
     plt.tight_layout()
     plt.show()
+
+
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -101,24 +111,43 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 96, 96, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
 
         for i, row in batch_images.reset_index().iterrows():
 
-            image_id = row['image_id']
-            x = IMAGES[image_id].copy()
-            x = x / PERCENTILES[image_id]
-            x = x.clip(0, 1)
-            # if self.is_train:
-                # x = augmentor(image=x)['image']
+            x = get_image(row['image_id'])
 
-            X[i] = np.stack([x, x, x], axis=2)
-            grapheme_root_Y[i][trainIds.loc[image_id]['grapheme_root']] = 1
-            vowel_diacritic_Y[i][trainIds.loc[image_id]['vowel_diacritic']] = 1
-            consonant_diacritic_Y[i][trainIds.loc[image_id]['consonant_diacritic']] = 1
+            if self.is_train:
+                if np.random.rand() <= 0.5:
+                    random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
+                    grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
+                    vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
+                    consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
+                    x1 = get_image(random_id)
+                else:
+                    x1 = x.copy()
+                x1 = augmentor(image=x1.copy())['image']
+                if np.random.rand() <= 0.5:
+                    random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
+                    grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
+                    vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
+                    consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
+                    x2 = get_image(random_id)
+                else:
+                    x2 = x.copy()
+                x2 = augmentor(image=x2.copy())['image']
+                x = augmentor(image=x.copy())['image']
+            else:
+                x1 = x.copy()
+                x2 = x.copy()
+
+            X[i] = np.stack([x, x1, x2], axis=2)
+            grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
+            vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
+            consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
 
         return X, {
             'grapheme_root': grapheme_root_Y,
@@ -145,10 +174,7 @@ class MultiOutputImageGenerator(Sequence):
         consonant_diacritic_predictions = []
         images = []
         for image_id in self.images['image_id']:
-
-            x = IMAGES[image_id].copy()
-            x = x / PERCENTILES[image_id]
-            x = x.clip(0, 1)
+            x = get_image(row['image_id'])
             image = np.stack([x, x, x], axis=2)
             images.append(image)
             if len(images) == 128:

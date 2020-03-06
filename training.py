@@ -32,9 +32,9 @@ class FixedDropout(Dropout):
 def get_loss():
 
     return {
-    	'grapheme_root': 'categorical_crossentropy',
-    	'vowel_diacritic': 'categorical_crossentropy',
-        'consonant_diacritic': 'categorical_crossentropy'
+    	'grapheme_root': 'binary_crossentropy',
+    	'vowel_diacritic': 'binary_crossentropy',
+        'consonant_diacritic': 'binary_crossentropy'
     }, {
         'grapheme_root': 1,
         'vowel_diacritic': 1,
@@ -50,7 +50,7 @@ def pretrain_model(model, name, settings):
     loss, loss_weights = get_loss()
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
     weighted_recall = WeightedRecall(train_generator, valid_generator)
-    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights)
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
@@ -83,7 +83,7 @@ def train_full_model(model, name, settings, retrain=False, recall=False):
         callbacks = [reduce_lr, early_stopping, model_checkpoint]
 
     print('Training Model...')
-    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights)
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),

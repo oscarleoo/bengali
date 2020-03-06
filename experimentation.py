@@ -106,52 +106,10 @@ original_images = {}
 for i, row in train.iterrows():
     if i in original_images.keys():
         continue
+    image = 255 - row.values
     image = image.reshape(137, 236)
     image = image.astype(np.uint8)
     original_images[i] = image
-
 joblib.dump(original_images, 'data/original_images')
 
 print('hej')
-
-
-
-
-plt.imshow(image)
-
-
-
-
-
-train = pd.read_csv('data/train.csv')
-train.head()
-
-
-
-
-train = train.sample(frac=1)
-train.shape
-
-
-train.head()
-
-
-
-
-200840/3
-66946*2
-
-split1 = train.iloc[0:66946]
-split2 = train.iloc[66946:133892]
-split3 = train.iloc[133892:]
-
-
-split1.shape
-split2.shape
-split3.shape
-
-split1['split'] = 'valid'
-split2['split'] = 'train'
-split3['split'] = 'train'
-
-pd.concat([split1, split2, split3])[['image_id', 'split']].to_csv('splits/split3/split.csv', index=None)
