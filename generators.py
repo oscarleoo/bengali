@@ -17,11 +17,11 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    GridMask(num_grid=(3, 7), rotate=10, p=0.5),
+    GridMask(num_grid=(3, 7), rotate=10, p=1.0),
     # AA.OneOf([
     #     AA.GaussianBlur(),
     #     AA.Blur(blur_limit=3),
@@ -119,26 +119,9 @@ class MultiOutputImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
 
             x = get_image(row['image_id'])
-
             if self.is_train:
-                if np.random.rand() <= 0.5:
-                    random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
-                    grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                    vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
-                    consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
-                    x1 = get_image(random_id)
-                else:
-                    x1 = x.copy()
-                x1 = augmentor(image=x1.copy())['image']
-                if np.random.rand() <= 0.5:
-                    random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
-                    grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                    vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
-                    consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
-                    x2 = get_image(random_id)
-                else:
-                    x2 = x.copy()
-                x2 = augmentor(image=x2.copy())['image']
+                x1 = augmentor(image=x.copy())['image']
+                x2 = augmentor(image=x.copy())['image']
                 x = augmentor(image=x.copy())['image']
             else:
                 x1 = x.copy()
@@ -207,8 +190,3 @@ def get_data_generators(split, batch_size):
     train_generator = MultiOutputImageGenerator(train_df, batch_size, True)
     valid_generator = MultiOutputImageGenerator(valid_df, batch_size, False)
     return train_generator, valid_generator
-
-
-168 / 186
-11/ 186
-7 / 186
