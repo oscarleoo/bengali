@@ -12,7 +12,7 @@ def generalized_mean_pool_2d(X):
     return pool
 
 
-def get_b0():
+def get_model():
 
     backbone = efn.EfficientNetB0(input_shape=(96, 96, 3), include_top=False,  pooling=None, classes=None, weights='imagenet')
 
@@ -23,38 +23,7 @@ def get_b0():
     lambda_layer.trainable_weights.extend([gm_exp])
     gem = lambda_layer(backbone.output)
 
-    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(gem)
-    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(gem)
-    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(gem)
+    intermediate = Dense(512, activation='relu', name='vowel_diacritic')(gem)
+    output = Dense(186, activation='sigmoid', name='output')(intermediate)
 
-    return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
-
-
-def get_b1_backbone():
-    backbone = efn.EfficientNetB1(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
-    backbone_output = concatenate([
-        GlobalAveragePooling2D()(backbone.output),
-        GlobalMaxPooling2D()(backbone.output),
-    ])
-    return backbone, backbone_output
-
-
-def get_b2_backbone():
-    backbone = efn.EfficientNetB2(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
-    backbone_output = GlobalAveragePooling2D()(backbone.output)
-    return backbone, backbone_output
-
-
-def get_b3_backbone():
-    backbone = efn.EfficientNetB3(input_shape=(128, 128, 3), include_top=False,  weights='imagenet')
-    backbone_output = GlobalAveragePooling2D()(backbone.output)
-    return backbone, backbone_output
-
-def connect_simple_head(backbone, backbone_output):
-
-    # grapheme_root_head
-    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(backbone_output)
-    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(backbone_output)
-    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(backbone_output)
-
-    return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
+    return Model(backbone.input, output)

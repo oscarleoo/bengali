@@ -3,7 +3,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from generators import get_data_generators
-from algorithms import get_b0_backbone, connect_simple_head
+from algorithms import get_model
 from sklearn.metrics import recall_score, multilabel_confusion_matrix
 
 IMAGES = joblib.load('data/original_images')

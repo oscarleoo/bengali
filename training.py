@@ -29,28 +29,14 @@ class FixedDropout(Dropout):
         return tuple(noise_shape)
 
 
-def get_loss():
-
-    return {
-    	'grapheme_root': 'categorical_crossentropy',
-    	'vowel_diacritic': 'categorical_crossentropy',
-        'consonant_diacritic': 'categorical_crossentropy'
-    }, {
-        'grapheme_root': 3,
-        'vowel_diacritic': 1,
-        'consonant_diacritic': 1
-    }
-
-
 def pretrain_model(model, name, settings):
 
     if not os.path.exists('results/{}'.format(name)):
         os.makedirs('results/{}'.format(name))
 
-    loss, loss_weights = get_loss()
     train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
     weighted_recall = WeightedRecall(train_generator, valid_generator)
-    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights)
+    model.compile(optimizer=Adam(settings['learning_rate']), loss='binary_crossentropy')
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),

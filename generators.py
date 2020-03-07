@@ -112,45 +112,36 @@ class MultiOutputImageGenerator(Sequence):
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
         X = np.zeros((self.batch_size, 96, 96, 3))
-        grapheme_root_Y = np.zeros((self.batch_size, 168))
-        vowel_diacritic_Y = np.zeros((self.batch_size, 11))
-        consonant_diacritic_Y = np.zeros((self.batch_size, 7))
+        Y = np.zeros((self.batch_size, 186))
 
         for i, row in batch_images.reset_index().iterrows():
 
             x = get_image(row['image_id'])
 
             if self.is_train:
-                # if np.random.rand() <= 0.5:
-                #     random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
-                #     grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                #     vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
-                #     consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
-                #     x1 = get_image(random_id)
-                # else:
-                #     x1 = x.copy()
-                # x1 = augmentor(image=x1.copy())['image']
-                # if np.random.rand() <= 0.5:
-                #     random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
-                #     grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                #     vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
-                #     consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
-                #     x2 = get_image(random_id)
-                # else:
-                #     x2 = x.copy()
-                # x2 = augmentor(image=x2.copy())['image']
-                x = augmentor(image=x)['image']
+                if np.random.rand() <= 0.5:
+                    random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
+                    Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
+                    Y[i][167 + trainIds.loc[random_id]['vowel_diacritic']] = 1
+                    Y[i][167 + 11 + trainIds.loc[random_id]['consonant_diacritic']] = 1
+                    x1 = get_image(random_id)
+                else:
+                    x1 = x.copy()
+                if np.random.rand() <= 0.5:
+                    random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
+                    Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
+                    Y[i][167 + trainIds.loc[random_id]['vowel_diacritic']] = 1
+                    Y[i][167 + 11 + trainIds.loc[random_id]['consonant_diacritic']] = 1
+                    x2 = get_image(random_id)
+                else:
+                    x2 = x.copy()
 
-            X[i] = np.stack([x, x, x], axis=2)
-            grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
-            vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
-            consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
+            X[i] = np.stack([x, x1, x2], axis=2)
+            Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
+            Y[i][167 + trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
+            Y[i][167 + 11 + trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
 
-        return X, {
-            'grapheme_root': grapheme_root_Y,
-            'vowel_diacritic': vowel_diacritic_Y,
-            'consonant_diacritic': consonant_diacritic_Y
-        }
+        return X, Y
 
     def on_epoch_end(self):
         if self.is_train:
@@ -176,16 +167,14 @@ class MultiOutputImageGenerator(Sequence):
             images.append(image)
             if len(images) == 128:
                 predictions = model.predict(np.array(images))
-                predictions = [p.argmax(axis=1) for p in predictions]
-                grapheme_root_predictions.extend(predictions[0])
-                vowel_diacritic_predictions.extend(predictions[1])
-                consonant_diacritic_predictions.extend(predictions[2])
+                grapheme_root_predictions.extend([p[:168].argmax(axis=1) for p in predictions])
+                vowel_diacritic_predictions.extend([p[168:179].argmax(axis=1) for p in predictions])
+                consonant_diacritic_predictions.extend([p[179:].argmax(axis=1) for p in predictions])
                 images = []
         predictions = model.predict(np.array(images))
-        predictions = [p.argmax(axis=1) for p in predictions]
-        grapheme_root_predictions.extend(predictions[0])
-        vowel_diacritic_predictions.extend(predictions[1])
-        consonant_diacritic_predictions.extend(predictions[2])
+        grapheme_root_predictions.extend([p[:168].argmax(axis=1) for p in predictions])
+        vowel_diacritic_predictions.extend([p[168:179].argmax(axis=1) for p in predictions])
+        consonant_diacritic_predictions.extend([p[179:].argmax(axis=1) for p in predictions])
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
