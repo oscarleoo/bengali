@@ -136,7 +136,7 @@ class MultiOutputImageGenerator(Sequence):
                 else:
                     x2 = x.copy()
             else:
-                x1 = x.xopy()
+                x1 = x.copy()
                 x2 = x.copy()
 
             X[i] = np.stack([x, x1, x2], axis=2)
