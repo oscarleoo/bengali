@@ -139,7 +139,10 @@ class MultiOutputImageGenerator(Sequence):
                 x1 = x.copy()
                 x2 = x.copy()
 
-            X[i] = np.stack([x, x1, x2], axis=2)
+            x_list = [x, x1, x2]
+            np.random.shuffle(x_list)
+
+            X[i] = np.stack(x_list, axis=2)
             Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             Y[i][168 + trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
             Y[i][168 + 11 + trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
