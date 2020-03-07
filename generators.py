@@ -170,14 +170,14 @@ class MultiOutputImageGenerator(Sequence):
             images.append(image)
             if len(images) == 128:
                 predictions = model.predict(np.array(images))
-                grapheme_root_predictions.extend([p[:168].argmax(axis=1) for p in predictions])
-                vowel_diacritic_predictions.extend([p[168:179].argmax(axis=1) for p in predictions])
-                consonant_diacritic_predictions.extend([p[179:].argmax(axis=1) for p in predictions])
+                grapheme_root_predictions.extend([p[:168].argmax() for p in predictions])
+                vowel_diacritic_predictions.extend([p[168:179].argmax() for p in predictions])
+                consonant_diacritic_predictions.extend([p[179:].argmax() for p in predictions])
                 images = []
         predictions = model.predict(np.array(images))
-        grapheme_root_predictions.extend([p[:168].argmax(axis=1) for p in predictions])
-        vowel_diacritic_predictions.extend([p[168:179].argmax(axis=1) for p in predictions])
-        consonant_diacritic_predictions.extend([p[179:].argmax(axis=1) for p in predictions])
+        grapheme_root_predictions.extend([p[:168].argmax() for p in predictions])
+        vowel_diacritic_predictions.extend([p[168:179].argmax() for p in predictions])
+        consonant_diacritic_predictions.extend([p[179:].argmax() for p in predictions])
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
