@@ -10,7 +10,7 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -21,17 +21,17 @@ augmentor = AA.Compose([
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
-    GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    # AA.OneOf([
-    #     AA.GaussianBlur(),
-    #     AA.Blur(blur_limit=3),
-    # ], p=0.5),
+    # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
+    AA.OneOf([
+        AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=32, min_width=4, max_width=32),
+        AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=64)
+    ], p=1.0),
 ], p=1)
 
 
 def get_image(image_id):
     x = IMAGES[image_id].copy()
-    x = x / x.max()
+    x = x / np.percentile(x, 99)
     return x.clip(0, 1)
 
 
@@ -111,7 +111,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 96, 96, 3))
+        X = np.zeros((self.batch_size, 128, 128, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
