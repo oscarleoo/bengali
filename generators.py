@@ -122,16 +122,16 @@ class MultiOutputImageGenerator(Sequence):
                 if np.random.rand() <= 0.5:
                     random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
                     Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                    Y[i][167 + 1 + trainIds.loc[random_id]['vowel_diacritic']] = 1
-                    Y[i][167 + 11 + 1 + trainIds.loc[random_id]['consonant_diacritic']] = 1
+                    Y[i][168 + trainIds.loc[random_id]['vowel_diacritic']] = 1
+                    Y[i][168 + 11 + trainIds.loc[random_id]['consonant_diacritic']] = 1
                     x1 = get_image(random_id)
                 else:
                     x1 = x.copy()
                 if np.random.rand() <= 0.5:
                     random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
                     Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                    Y[i][167 + 1 + trainIds.loc[random_id]['vowel_diacritic']] = 1
-                    Y[i][167 + 11 + 1 + trainIds.loc[random_id]['consonant_diacritic']] = 1
+                    Y[i][168 + trainIds.loc[random_id]['vowel_diacritic']] = 1
+                    Y[i][168 + 11 + trainIds.loc[random_id]['consonant_diacritic']] = 1
                     x2 = get_image(random_id)
                 else:
                     x2 = x.copy()
@@ -141,8 +141,8 @@ class MultiOutputImageGenerator(Sequence):
 
             X[i] = np.stack([x, x1, x2], axis=2)
             Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
-            Y[i][167 + 1 + trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
-            Y[i][167 + 11 + 1 + trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
+            Y[i][168 + trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
+            Y[i][168 + 11 + trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
 
         return X, Y
 

@@ -70,7 +70,7 @@ def train_full_model(model, name, settings, retrain=False, recall=False):
 
     print('Training Model...')
     # loss=[binary_focal_loss(alpha=.25, gamma=2)]
-    model.compile(optimizer=Adam(settings['learning_rate']), loss='binary_crossentropy', metrics=['accuracy', 'binary_accuracy'])
+    model.compile(optimizer=Adam(settings['learning_rate']), loss=[binary_focal_loss(alpha=.25, gamma=1)], metrics=['accuracy', 'binary_accuracy'])
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
