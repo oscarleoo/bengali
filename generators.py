@@ -10,7 +10,7 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -111,7 +111,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 96, 96, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))

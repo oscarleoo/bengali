@@ -8,6 +8,14 @@ import cv2
 train = pd.read_csv('data/train.csv')
 train.head()
 
+
+
+
+
+
+
+
+
 train.shape
 
 ###################################
