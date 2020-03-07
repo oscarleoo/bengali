@@ -135,6 +135,9 @@ class MultiOutputImageGenerator(Sequence):
                     x2 = get_image(random_id)
                 else:
                     x2 = x.copy()
+            else:
+                x1 = x.xopy()
+                x2 = x.copy()
 
             X[i] = np.stack([x, x1, x2], axis=2)
             Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1

@@ -56,12 +56,11 @@ def train_full_model(model, name, settings, retrain=False, recall=False):
         model.load_weights('results/{}/train_full.h5'.format(name))
     else:
         model.load_weights('results/{}/pretrain_model.h5'.format(name))
-    loss, loss_weights = get_loss()
 
     print('Preparing Callbacks...')
-    reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.3, patience=3, min_lr=0.000001, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=5, restore_best_weights=True, verbose=1)
-    model_checkpoint = ModelCheckpoint('results/{}/train_full.h5'.format(name), monitor='val_grapheme_root_loss', verbose=1, save_best_only=True, save_weights_only=True)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.3, patience=3, min_lr=0.000001, verbose=1)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
+    model_checkpoint = ModelCheckpoint('results/{}/train_full.h5'.format(name), monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True)
     if recall:
         weighted_recall = WeightedRecall(train_generator, valid_generator)
         callbacks = [weighted_recall, reduce_lr, early_stopping, model_checkpoint]
@@ -69,7 +68,7 @@ def train_full_model(model, name, settings, retrain=False, recall=False):
         callbacks = [reduce_lr, early_stopping, model_checkpoint]
 
     print('Training Model...')
-    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss, loss_weights=loss_weights)
+    model.compile(optimizer=Adam(settings['learning_rate']), loss=loss='binary_crossentropy')
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
