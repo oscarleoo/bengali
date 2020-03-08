@@ -17,7 +17,7 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 
 augmentor = AA.Compose([
-    # AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
@@ -121,24 +121,6 @@ class MultiOutputImageGenerator(Sequence):
             x = get_image(row['image_id'])
 
             if self.is_train:
-                # if np.random.rand() <= 0.5:
-                #     random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
-                #     grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                #     vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
-                #     consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
-                #     x1 = get_image(random_id)
-                # else:
-                #     x1 = x.copy()
-                # x1 = augmentor(image=x1.copy())['image']
-                # if np.random.rand() <= 0.5:
-                #     random_id = np.random.choice(self.graphemeIds[np.random.choice([i for i in range(168)])])
-                #     grapheme_root_Y[i][trainIds.loc[random_id]['grapheme_root']] = 1
-                #     vowel_diacritic_Y[i][trainIds.loc[random_id]['vowel_diacritic']] = 1
-                #     consonant_diacritic_Y[i][trainIds.loc[random_id]['consonant_diacritic']] = 1
-                #     x2 = get_image(random_id)
-                # else:
-                #     x2 = x.copy()
-                # x2 = augmentor(image=x2.copy())['image']
                 x = augmentor(image=x)['image']
 
             X[i] = np.stack([x, x, x], axis=2)
