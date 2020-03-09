@@ -10,7 +10,7 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -40,8 +40,6 @@ def plot_augmentations():
     _id = np.random.choice(list(IMAGES.keys()))
 
     image = get_image(_id)
-    # image = image / 100
-    # image = image.clip(0, 1)
 
     plt.figure(figsize=(5, 5))
     plt.imshow(image, cmap='gray')
@@ -120,8 +118,8 @@ class MultiOutputImageGenerator(Sequence):
 
             x = get_image(row['image_id'])
 
-            if self.is_train:
-                x = augmentor(image=x)['image']
+            # if self.is_train:
+            #     x = augmentor(image=x)['image']
 
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1

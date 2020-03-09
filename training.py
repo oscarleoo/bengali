@@ -36,7 +36,7 @@ def get_loss():
     	'vowel_diacritic': 'categorical_crossentropy',
         'consonant_diacritic': 'categorical_crossentropy'
     }, {
-        'grapheme_root': 3,
+        'grapheme_root': 1,
         'vowel_diacritic': 1,
         'consonant_diacritic': 1
     }
