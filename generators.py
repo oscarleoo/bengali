@@ -17,14 +17,14 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
     AA.OneOf([
-        AA.CoarseDropout(min_holes=2, max_holes=10, min_height=4, max_height=32, min_width=4, max_width=32),
-        AA.CoarseDropout(min_holes=1, max_holes=2, min_height=32, max_height=64, min_width=32, max_width=64)
+        AA.CoarseDropout(min_holes=2, max_holes=6, min_height=4, max_height=32, min_width=4, max_width=32),
+        AA.CoarseDropout(min_holes=1, max_holes=1, min_height=32, max_height=64, min_width=32, max_width=64)
     ], p=1.0),
 ], p=1)
 
@@ -118,8 +118,8 @@ class MultiOutputImageGenerator(Sequence):
 
             x = get_image(row['image_id'])
 
-            # if self.is_train:
-            #     x = augmentor(image=x)['image']
+            if self.is_train:
+                x = augmentor(image=x)['image']
 
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
