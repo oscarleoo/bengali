@@ -45,7 +45,7 @@ def get_loss():
 def test_performance(model, name):
 
     model.load_weights('results/{}/train_full.h5'.format(name))
-    train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
+    train_generator, valid_generator = get_data_generators(name, 186)
 
     valid_predictions = self.valid.make_predictions(self.model).sort_index()
     train_predictions = self.train.make_predictions(self.model).sort_index()
