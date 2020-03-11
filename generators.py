@@ -17,7 +17,7 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 
 augmentor = AA.Compose([
-    # AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=5, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
@@ -63,7 +63,7 @@ def plot_augmentations():
     plt.show()
 
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
