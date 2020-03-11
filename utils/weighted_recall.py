@@ -20,8 +20,9 @@ def calculate_class_weights(y_true, y_pred, title):
     return class_recall
 
 
-def calculate_recall(y_true, y_pred):
+def calculate_recall(y_pred):
     scores = []
+    y_true = trainIds[trainIds.index.isin(y_pred.index)].sort_index()
     for component in ['grapheme_root', 'vowel_diacritic', 'consonant_diacritic']:
         y_true_subset = y_true[component].values.astype(int)
         y_pred_subset = y_pred[component].values.astype(int)
@@ -65,8 +66,8 @@ class WeightedRecall(Callback):
         print_recall(trainConsonant, validConsonant, 'ConsonantDiacritic')
 
 
-        valid_score, valid_gr_score, valid_vd_score, valid_cd_score = calculate_recall(valid_ids, valid_predictions)
-        train_score, train_gr_score, train_vd_score, train_cd_score = calculate_recall(train_ids, train_predictions)
+        valid_score, valid_gr_score, valid_vd_score, valid_cd_score = calculate_recall(valid_predictions)
+        train_score, train_gr_score, train_vd_score, train_cd_score = calculate_recall(train_predictions)
 
         print()
         print('==> Weighted Valid Recal Score: {} ({} - {} - {})'.format(valid_score, valid_gr_score, valid_vd_score, valid_cd_score))

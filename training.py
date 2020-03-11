@@ -11,7 +11,7 @@ from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback, ModelCheckpoint
 
 from generators import get_data_generators
-from utils.weighted_recall import WeightedRecall
+from utils.weighted_recall import WeightedRecall, calculate_recall
 
 
 def swish(x, beta = 1):
@@ -40,6 +40,20 @@ def get_loss():
         'vowel_diacritic': 1,
         'consonant_diacritic': 1
     }
+
+
+def test_performance(model):
+
+    train_generator, valid_generator = get_data_generators(settings['split'], settings['batchsize'])
+
+    valid_predictions = self.valid.make_predictions(self.model).sort_index()
+    train_predictions = self.train.make_predictions(self.model).sort_index()
+
+    valid_score, valid_gr_score, valid_vd_score, valid_cd_score = calculate_recall(valid_predictions)
+    train_score, train_gr_score, train_vd_score, train_cd_score = calculate_recall(train_predictions)
+
+    print('==> Weighted Valid Recal Score: {} ({} - {} - {})'.format(valid_score, valid_gr_score, valid_vd_score, valid_cd_score))
+    print('==> Weighted Train Recal Score: {} ({} - {} - {})'.format(train_score, train_gr_score, train_vd_score, train_cd_score))
 
 
 def pretrain_model(model, name, settings):
