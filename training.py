@@ -47,8 +47,8 @@ def test_performance(model, name):
     model.load_weights('results/{}/train_full.h5'.format(name))
     train_generator, valid_generator = get_data_generators(name, 186)
 
-    valid_predictions = self.valid.make_predictions(self.model).sort_index()
-    train_predictions = self.train.make_predictions(self.model).sort_index()
+    valid_predictions = valid_generator.make_predictions(model).sort_index()
+    train_predictions = train_generator.make_predictions(model).sort_index()
 
     valid_score, valid_gr_score, valid_vd_score, valid_cd_score = calculate_recall(valid_predictions)
     train_score, train_gr_score, train_vd_score, train_cd_score = calculate_recall(train_predictions)
