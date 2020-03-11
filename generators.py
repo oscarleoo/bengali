@@ -50,7 +50,6 @@ def plot_augmentations():
     for i in range(16):
 
         aug_img = augmentor(image=image.copy())['image']
-
         axes[row][col].imshow(aug_img, cmap='gray')
         axes[row][col].set_xticks([])
         axes[row][col].set_yticks([])
@@ -63,7 +62,8 @@ def plot_augmentations():
     plt.show()
 
 
-plot_augmentations()
+# plot_augmentations()
+
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -116,12 +116,15 @@ class MultiOutputImageGenerator(Sequence):
 
         for i, row in batch_images.reset_index().iterrows():
 
-            x = get_image(row['image_id'])
+            original = get_image(row['image_id'])
 
             if self.is_train:
-                x = augmentor(image=x)['image']
-
-            X[i] = np.stack([x, x, x], axis=2)
+                x = augmentor(image=original)['image']
+                if x.mean() < 0.02:
+                    x = augmentor(image=original)['image']
+                X[i] = np.stack([x, x, x], axis=2)
+            else:
+                X[i] = np.stack([original, original, original], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
