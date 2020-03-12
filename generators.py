@@ -89,7 +89,7 @@ class MultiOutputImageGenerator(Sequence):
 
             grapheme_root_list = [i for i in range(168)]
             np.random.shuffle(grapheme_root_list)
-            for grapheme_root in grapheme_root_list[:78]:
+            for grapheme_root in grapheme_root_list[:self.batch_size-11-7]:
                 batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
 
             for vowel in [i for i in range(11)]:
