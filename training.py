@@ -12,6 +12,7 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback, ModelChe
 
 from generators import get_data_generators
 from utils.weighted_recall import WeightedRecall, calculate_recall
+from utils.focal_loss import categorical_focal_loss
 
 
 def swish(x, beta = 1):
@@ -32,9 +33,9 @@ class FixedDropout(Dropout):
 def get_loss():
 
     return {
-    	'grapheme_root': 'categorical_crossentropy',
-    	'vowel_diacritic': 'categorical_crossentropy',
-        'consonant_diacritic': 'categorical_crossentropy'
+    	'grapheme_root': categorical_focal_loss(alpha=.25, gamma=2),
+    	'vowel_diacritic': categorical_focal_loss(alpha=.25, gamma=2),
+        'consonant_diacritic': categorical_focal_loss(alpha=.25, gamma=2)
     }, {
         'grapheme_root': 1,
         'vowel_diacritic': 1,
