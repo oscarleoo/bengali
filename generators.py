@@ -10,7 +10,6 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (128, 128), interpolation=cv2.INTER_AREA) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -28,8 +27,7 @@ augmentor = AA.Compose([
 
 def get_image(image_id):
     x = IMAGES[image_id].copy()
-    x = x / np.percentile(x, 99)
-    return x.clip(0, 1)
+    return x / x.max()
 
 
 def plot_augmentations():
@@ -61,7 +59,6 @@ def plot_augmentations():
 
 # plot_augmentations()
 
-
 class MultiOutputImageGenerator(Sequence):
 
     def __init__(self, images, batch_size, is_train):
@@ -91,7 +88,9 @@ class MultiOutputImageGenerator(Sequence):
         if self.is_train:
             batchIds = []
 
-            for grapheme_root in [i for i in range(168)]:
+            grapheme_root_list = [i for i in range(168)]
+            np.random.shuffle(grapheme_root_list)
+            for grapheme_root in grapheme_root_list[:110]:
                 batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
 
             for vowel in [i for i in range(11)]:
@@ -105,7 +104,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 137, 236, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))

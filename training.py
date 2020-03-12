@@ -45,7 +45,7 @@ def get_loss():
 def test_performance(model, name):
 
     model.load_weights('results/{}/train_full.h5'.format(name))
-    train_generator, valid_generator = get_data_generators(name, 186)
+    train_generator, valid_generator = get_data_generators(name, 128)
 
     valid_predictions = valid_generator.make_predictions(model).sort_index()
     train_predictions = train_generator.make_predictions(model).sort_index()
@@ -125,7 +125,7 @@ def train_head(model, backend, split, name, settings):
     reduce_lr = ReduceLROnPlateau(monitor='val_grapheme_root_loss', factor=0.1, patience=2, min_lr=0.000001, verbose=1)
     early_stopping = EarlyStopping(monitor='val_grapheme_root_loss', patience=3, restore_best_weights=True, verbose=1)
 
-    model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'])
+    model.compile(optimizer=Adam(lr=0.0001), loss=loss, metrics=['categorical_accuracy'], clipnorm=0.1)
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=1000,
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
