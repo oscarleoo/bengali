@@ -10,14 +10,14 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (128, 128), interpolation=cv2.INTER_AREA) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=5, shift_limit=0.1, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
