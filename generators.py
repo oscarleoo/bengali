@@ -56,7 +56,6 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
-
 # plot_augmentations()
 
 class MultiOutputImageGenerator(Sequence):
@@ -90,7 +89,7 @@ class MultiOutputImageGenerator(Sequence):
 
             grapheme_root_list = [i for i in range(168)]
             np.random.shuffle(grapheme_root_list)
-            for grapheme_root in grapheme_root_list[:110]:
+            for grapheme_root in grapheme_root_list[:78]:
                 batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
 
             for vowel in [i for i in range(11)]:
