@@ -33,9 +33,9 @@ class FixedDropout(Dropout):
 def get_loss():
 
     return {
-    	'grapheme_root': categorical_focal_loss(alpha=.25, gamma=2),
-    	'vowel_diacritic': categorical_focal_loss(alpha=.25, gamma=2),
-        'consonant_diacritic': categorical_focal_loss(alpha=.25, gamma=2)
+    	'grapheme_root': categorical_focal_loss(alpha=.25, gamma=1),
+    	'vowel_diacritic': categorical_focal_loss(alpha=.25, gamma=1),
+        'consonant_diacritic': categorical_focal_loss(alpha=.25, gamma=1)
     }, {
         'grapheme_root': 1,
         'vowel_diacritic': 1,
