@@ -99,7 +99,7 @@ def train_full_model(model, name, settings, retrain=False, recall=False):
         callbacks = [reduce_lr, early_stopping, model_checkpoint]
 
     print('Training Model...')
-    model.compile(optimizer=Adam(settings['learning_rate'], clipnorm=0.1), metrics=['categorical_accuracy'], loss=loss, loss_weights=loss_weights)
+    model.compile(optimizer=Adam(settings['learning_rate']), metrics=['categorical_accuracy'], loss=loss, loss_weights=loss_weights)
     history = model.fit_generator(
         train_generator, steps_per_epoch=train_generator.__len__(), epochs=settings['epochs'],
         validation_data=valid_generator, validation_steps=valid_generator.__len__(),
