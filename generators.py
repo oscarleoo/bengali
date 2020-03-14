@@ -10,7 +10,7 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (64, 64), interpolation=cv2.INTER_AREA) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -58,7 +58,7 @@ def plot_augmentations():
     plt.show()
 
 
-# plot_augmentations()
+plot_augmentations()
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -147,12 +147,6 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
-
-
-train_generator = MultiOutputImageGenerator(train_df, 186, True)
-hmm = train_generator.__getitem__(0)
-
-plt.imshow(hmm[0][0])
 
 
 def get_data_generators(split, batch_size):
