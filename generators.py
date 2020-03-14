@@ -8,120 +8,30 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
 
-def bbox(img):
-    rows = np.any(img, axis=1)
-    cols = np.any(img, axis=0)
-    rmin, rmax = np.where(rows)[0][[0, -1]]
-    cmin, cmax = np.where(cols)[0][[0, -1]]
-    return rmin, rmax, cmin, cmax
-
-
-def crop_resize(img0, pad=16):
-    #crop a box around pixels large than the threshold
-    #some images contain line at the sides
-    ymin,ymax,xmin,xmax = bbox(img0[5:-5,5:-5] > 80)
-    #cropping may cut too much, so we need to add it back
-    xmin = xmin - 13 if (xmin > 13) else 0
-    ymin = ymin - 10 if (ymin > 10) else 0
-    xmax = xmax + 13 if (xmax < 236 - 13) else 236
-    ymax = ymax + 10 if (ymax < 137 - 10) else 137
-    return img0[ymin:ymax,xmin:xmax]
-
-
-def trim_image(image):
-
-    cut_value = int(image.max() / 2)
-
-    # Remove frame
-    frame_indexes_x = (image > 30).sum(axis=1) < 200
-    image = image[frame_indexes_x,:]
-    frame_indexes_y = (image > 30).sum(axis=0) < 120
-    image = image[:,frame_indexes_y]
-
-    image = crop_resize(image)
-
-
-    for i, (s, c) in enumerate(zip(image.max(axis=0), (image > cut_value).sum(axis=0))):
-        if s > cut_value and c > 3:
-            image = image[:,i:]
-            break
-    for i, (s, c) in enumerate(zip(np.flip(image.max(axis=0)), np.flip((image > cut_value).sum(axis=0)))):
-        if s > cut_value and c > 3:
-            image = image[:,:-i-1]
-            break
-    for i, (s, c) in enumerate(zip(image.max(axis=1), (image > cut_value).sum(axis=1))):
-        if s > cut_value and c > 3:
-            image = image[i+1:,:]
-            break
-    for i, (s, c) in enumerate(zip(np.flip(image.max(axis=1)), np.flip((image > cut_value).sum(axis=1)))):
-        if s > cut_value and c > 3:
-            image = image[:-i-1,:]
-            break
-
-    return image
-
-
-
-OIMAGES = joblib.load('data/original_images')
-IMAGES = {_id: trim_image(image) for _id, image in OIMAGES.items()}
+IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    # AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=5, shift_limit=0.2, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.RandomContrast(limit=0.2, p=1.0),
+    AA.RandomContrast(limit=0.2, p=0.5),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=0.8)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=0.5)
 ], p=1)
 
 
-
-def plot_preprocessing(img_id):
-    print(img_id)
-    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(10,3))
-    axes[0].imshow(OIMAGES[img_id], cmap='gray')
-    axes[1].imshow(trim_image(OIMAGES[img_id]), cmap='gray')
-    axes[2].imshow(get_trimmed_image(img_id), cmap='gray')
-    axes[0].set_xticks([])
-    axes[0].set_yticks([])
-    axes[1].set_xticks([])
-    axes[1].set_yticks([])
-    axes[2].set_xticks([])
-    axes[2].set_yticks([])
-    plt.tight_layout()
-    plt.show()
-
-
-# O['Train_131498'].max() / 2
-#
-# O['Train_41126'].max(axis=1)
-#
-#
-# plt.imshow(O['Train_41126'], cmap='gray')
-#
-# plt.imshow(trim_image(O['Train_41126']), cmap='gray')
-
-
-def get_original_image(image_id):
-    x = OIMAGES[image_id].copy()
-    x = cv2.resize(x, (64, 64))
-    x = x / np.percentile(x, 99.9)
-    return x.clip(0, 1)
-
-def get_trimmed_image(image_id):
+def get_image(image_id):
     x = IMAGES[image_id].copy()
-    x = x / np.percentile(x, 99)
-    return x.clip(0, 1)
+    return x / x.max()
 
 
 def plot_augmentations():
 
     _id = np.random.choice(list(IMAGES.keys()))
-    print(_id)
     image = get_image(_id)
 
     plt.figure(figsize=(5, 5))
@@ -179,13 +89,16 @@ class MultiOutputImageGenerator(Sequence):
 
         for i, row in batch_images.reset_index().iterrows():
 
-            ox = get_original_image(row['image_id'])
-            px = get_trimmed_image(row['image_id'])
+            x = get_image(row['image_id'])
 
-            # if self.is_train:
-            #     x = augmentor(image=x)['image']
+            if self.is_train:
+                x1 = augmentor(image=x)['image']
+                x2 = augmentor(image=x)['image']
+                x3 = augmentor(image=x)['image']
+                X[i] = np.stack([x1, x2, x3], axis=2)
+            else:
+                X[i] = np.stack([x, x, x], axis=2)
 
-            X[i] = np.stack([ox, px, np.zeros((64, 64))], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1

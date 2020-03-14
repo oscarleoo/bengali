@@ -19,13 +19,12 @@ def get_b0():
     for layer in backbone.layers:
         layer.trainable = True
 
-    lambda_layer = Lambda(generalized_mean_pool_2d)
-    lambda_layer.trainable_weights.extend([gm_exp])
-    gem = lambda_layer(backbone.output)
+    avg = GlobalAveragePooling2D()(backbone.output)
+    dropout = Dropout(0.4)(avg)
 
-    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(gem)
-    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(gem)
-    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(gem)
+    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(dropout)
+    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(dropout)
+    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(dropout)
 
     return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
 
