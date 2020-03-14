@@ -12,7 +12,7 @@ def trim_image(image):
     image = image[1:-1, 1:-1]
     cut_value = np.percentile(image, 95)
     if cut_value < 20:
-        cut_value = 20
+        cut_value = int(image.max() / 2)
 
     for i, (s, c) in enumerate(zip(image.max(axis=0), (image > cut_value).sum(axis=0))):
         if s > cut_value and c > 1:
@@ -52,9 +52,24 @@ augmentor = AA.Compose([
 ], p=1)
 
 
+#
+# hmm = []
+# for _id, img in IMAGES.items():
+#     hmm.append((_id, img.mean()))
+# hmm.sort(key=lambda x: x[1])
+#
+# O['Train_131498'].max() / 2
+#
+# O['Train_41126'].max(axis=1)
+#
+#
+# plt.imshow(O['Train_41126'], cmap='gray')
+#
+# plt.imshow(trim_image(O['Train_41126']), cmap='gray')
+
+
 def get_image(image_id):
     x = IMAGES[image_id].copy()
-    print((x > 100).mean())
     x = x / np.percentile(x, 98)
     return x.clip(0, 1)
 
