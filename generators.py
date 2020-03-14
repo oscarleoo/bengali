@@ -16,12 +16,12 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.05, rotate_limit=3, shift_limit=0.05, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=0.8, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=1.0),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=0.3)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=0.8)
 ], p=1)
 
 
@@ -58,7 +58,7 @@ def plot_augmentations():
     plt.show()
 
 
-
+# plot_augmentations()
 
 class MultiOutputImageGenerator(Sequence):
 
@@ -86,23 +86,7 @@ class MultiOutputImageGenerator(Sequence):
 
     def __getitem__(self, idx):
 
-        if self.is_train:
-            batchIds = []
-
-            for grapheme_root in [i for i in range(168)]:
-                batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
-
-            for vowel in [i for i in range(11)]:
-                batchIds.append(np.random.choice(self.vowelIds[vowel]))
-
-            for consonant in [i for i in range(7)]:
-                batchIds.append(np.random.choice(self.consonantIds[consonant]))
-
-            np.random.shuffle(batchIds)
-            batch_images = self.images[self.images['image_id'].isin(batchIds)]
-        else:
-            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
-
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
@@ -163,6 +147,12 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
+
+
+train_generator = MultiOutputImageGenerator(train_df, 186, True)
+hmm = train_generator.__getitem__(0)
+
+plt.imshow(hmm[0][0])
 
 
 def get_data_generators(split, batch_size):
