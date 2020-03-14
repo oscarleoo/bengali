@@ -19,7 +19,7 @@ def trim_image(image):
 
 IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: trim_image(image) for _id, image in IMAGES.items()}
-IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -96,7 +96,7 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
-        X = np.zeros((self.batch_size, 64, 64, 3))
+        X = np.zeros((self.batch_size, 96, 96, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))

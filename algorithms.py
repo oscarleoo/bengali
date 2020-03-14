@@ -14,7 +14,7 @@ def generalized_mean_pool_2d(X):
 
 def get_b0():
 
-    backbone = efn.EfficientNetB0(input_shape=(64, 64, 3), include_top=False,  pooling=None, classes=None, weights='imagenet')
+    backbone = efn.EfficientNetB0(input_shape=(96, 96, 3), include_top=False,  pooling=None, classes=None, weights='imagenet')
 
     for layer in backbone.layers:
         layer.trainable = True
