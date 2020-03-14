@@ -10,8 +10,8 @@ from sklearn.metrics import recall_score
 from utils.grid_mask import GridMask
 
 def trim_image(image):
-    sum_axis_0 = image.sum(axis=0) > 100
-    sum_axis_1 = image.sum(axis=1) > 100
+    sum_axis_0 = image.sum(axis=0) > 200
+    sum_axis_1 = image.sum(axis=1) > 200
     image = image[sum_axis_1, :]
     image = image[:, sum_axis_0]
     return image
@@ -37,14 +37,14 @@ augmentor = AA.Compose([
 
 def get_image(image_id):
     x = IMAGES[image_id].copy()
-    x = x / np.percentile(x, 99.9)
+    x = x / np.percentile(x, 99)
     return x.clip(0, 1)
 
 
 def plot_augmentations():
 
     _id = np.random.choice(list(IMAGES.keys()))
-
+    print(_id)
     image = get_image(_id)
 
     plt.figure(figsize=(5, 5))
@@ -68,7 +68,6 @@ def plot_augmentations():
     plt.show()
 
 
-plot_augmentations()
 
 class MultiOutputImageGenerator(Sequence):
 
