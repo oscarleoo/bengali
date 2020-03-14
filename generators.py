@@ -96,8 +96,8 @@ class MultiOutputImageGenerator(Sequence):
 
             x = get_image(row['image_id'])
 
-            if self.is_train:
-                x = augmentor(image=x)['image']
+            # if self.is_train:
+            #     x = augmentor(image=x)['image']
 
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
