@@ -7,19 +7,37 @@ import albumentations as AA
 import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
-from utils.grid_mask import GridMask
-
 def trim_image(image):
-    sum_axis_0 = image.sum(axis=0) > 200
-    sum_axis_1 = image.sum(axis=1) > 200
-    image = image[sum_axis_1, :]
-    image = image[:, sum_axis_0]
-    return image
 
+    image = image[1:-1, 1:-1]
+    cut_value = np.percentile(image, 95)
+    if cut_value < 20:
+        cut_value = 20
+
+    for i, (s, c) in enumerate(zip(image.max(axis=0), (image > cut_value).sum(axis=0))):
+        if s > cut_value and c > 1:
+            image = image[:,i:]
+            break
+    for i, (s, c) in enumerate(zip(np.flip(image.max(axis=0)), np.flip((image > cut_value).sum(axis=0)))):
+        if s > cut_value and c > 1:
+            if i != 0:
+                image = image[:,:-i]
+            break
+    for i, (s, c) in enumerate(zip(image.max(axis=1), (image > cut_value).sum(axis=1))):
+        if s > cut_value and c > 1:
+            image = image[i:,:]
+            break
+    for i, (s, c) in enumerate(zip(np.flip(image.max(axis=1)), np.flip((image > cut_value).sum(axis=1)))):
+        if s > cut_value and c > 1:
+            if i != 0:
+                image = image[:-i,:]
+            break
+
+    return image
 
 IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: trim_image(image) for _id, image in IMAGES.items()}
-IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -34,10 +52,10 @@ augmentor = AA.Compose([
 ], p=1)
 
 
-
 def get_image(image_id):
     x = IMAGES[image_id].copy()
-    x = x / np.percentile(x, 99)
+    print((x > 100).mean())
+    x = x / np.percentile(x, 98)
     return x.clip(0, 1)
 
 
@@ -68,7 +86,6 @@ def plot_augmentations():
     plt.show()
 
 
-
 class MultiOutputImageGenerator(Sequence):
 
     def __init__(self, images, batch_size, is_train):
@@ -96,7 +113,7 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
-        X = np.zeros((self.batch_size, 96, 96, 3))
+        X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
