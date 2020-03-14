@@ -20,11 +20,10 @@ def get_b0():
         layer.trainable = True
 
     avg = GlobalAveragePooling2D()(backbone.output)
-    dropout = Dropout(0.4)(avg)
 
-    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(dropout)
-    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(dropout)
-    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(dropout)
+    grapheme_root_head = Dense(168, activation='softmax', name='grapheme_root')(avg)
+    vowel_diacritic_head = Dense(11, activation='softmax', name='vowel_diacritic')(avg)
+    consonant_diacritic_head = Dense(7, activation='softmax', name='consonant_diacritic')(avg)
 
     return Model(backbone.input, outputs=[grapheme_root_head, vowel_diacritic_head, consonant_diacritic_head])
 
