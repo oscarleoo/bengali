@@ -7,36 +7,63 @@ import albumentations as AA
 import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
+
+def bbox(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+    return rmin, rmax, cmin, cmax
+
+
+def crop_resize(img0, pad=16):
+    #crop a box around pixels large than the threshold
+    #some images contain line at the sides
+    ymin,ymax,xmin,xmax = bbox(img0[5:-5,5:-5] > 80)
+    #cropping may cut too much, so we need to add it back
+    xmin = xmin - 13 if (xmin > 13) else 0
+    ymin = ymin - 10 if (ymin > 10) else 0
+    xmax = xmax + 13 if (xmax < 236 - 13) else 236
+    ymax = ymax + 10 if (ymax < 137 - 10) else 137
+    return img0[ymin:ymax,xmin:xmax]
+
+
 def trim_image(image):
 
-    image = image[1:-1, 1:-1]
-    cut_value = np.percentile(image, 95)
-    if cut_value < 20:
-        cut_value = int(image.max() / 2)
+    cut_value = int(image.max() / 2)
+
+    # Remove frame
+    frame_indexes_x = (image > 30).sum(axis=1) < 200
+    image = image[frame_indexes_x,:]
+    frame_indexes_y = (image > 30).sum(axis=0) < 120
+    image = image[:,frame_indexes_y]
+
+    image = crop_resize(image)
+
 
     for i, (s, c) in enumerate(zip(image.max(axis=0), (image > cut_value).sum(axis=0))):
-        if s > cut_value and c > 1:
+        if s > cut_value and c > 3:
             image = image[:,i:]
             break
     for i, (s, c) in enumerate(zip(np.flip(image.max(axis=0)), np.flip((image > cut_value).sum(axis=0)))):
-        if s > cut_value and c > 1:
-            if i != 0:
-                image = image[:,:-i]
+        if s > cut_value and c > 3:
+            image = image[:,:-i-1]
             break
     for i, (s, c) in enumerate(zip(image.max(axis=1), (image > cut_value).sum(axis=1))):
-        if s > cut_value and c > 1:
-            image = image[i:,:]
+        if s > cut_value and c > 3:
+            image = image[i+1:,:]
             break
     for i, (s, c) in enumerate(zip(np.flip(image.max(axis=1)), np.flip((image > cut_value).sum(axis=1)))):
-        if s > cut_value and c > 1:
-            if i != 0:
-                image = image[:-i,:]
+        if s > cut_value and c > 3:
+            image = image[:-i-1,:]
             break
 
     return image
 
-IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: trim_image(image) for _id, image in IMAGES.items()}
+
+
+OIMAGES = joblib.load('data/original_images')
+IMAGES = {_id: trim_image(image) for _id, image in OIMAGES.items()}
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
@@ -52,12 +79,23 @@ augmentor = AA.Compose([
 ], p=1)
 
 
-#
-# hmm = []
-# for _id, img in IMAGES.items():
-#     hmm.append((_id, img.mean()))
-# hmm.sort(key=lambda x: x[1])
-#
+
+def plot_preprocessing(img_id):
+    print(img_id)
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(10,3))
+    axes[0].imshow(OIMAGES[img_id], cmap='gray')
+    axes[1].imshow(trim_image(OIMAGES[img_id]), cmap='gray')
+    axes[2].imshow(get_trimmed_image(img_id), cmap='gray')
+    axes[0].set_xticks([])
+    axes[0].set_yticks([])
+    axes[1].set_xticks([])
+    axes[1].set_yticks([])
+    axes[2].set_xticks([])
+    axes[2].set_yticks([])
+    plt.tight_layout()
+    plt.show()
+
+
 # O['Train_131498'].max() / 2
 #
 # O['Train_41126'].max(axis=1)
@@ -68,9 +106,15 @@ augmentor = AA.Compose([
 # plt.imshow(trim_image(O['Train_41126']), cmap='gray')
 
 
-def get_image(image_id):
+def get_original_image(image_id):
+    x = OIMAGES[image_id].copy()
+    x = cv2.resize(x, (64, 64))
+    x = x / np.percentile(x, 99.9)
+    return x.clip(0, 1)
+
+def get_trimmed_image(image_id):
     x = IMAGES[image_id].copy()
-    x = x / np.percentile(x, 98)
+    x = x / np.percentile(x, 99)
     return x.clip(0, 1)
 
 
@@ -135,12 +179,13 @@ class MultiOutputImageGenerator(Sequence):
 
         for i, row in batch_images.reset_index().iterrows():
 
-            x = get_image(row['image_id'])
+            ox = get_original_image(row['image_id'])
+            px = get_trimmed_image(row['image_id'])
 
             # if self.is_train:
             #     x = augmentor(image=x)['image']
 
-            X[i] = np.stack([x, x, x], axis=2)
+            X[i] = np.stack([ox, px, np.zeros((64, 64))], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
@@ -188,6 +233,7 @@ class MultiOutputImageGenerator(Sequence):
         return pd.DataFrame([
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
+
 
 
 def get_data_generators(split, batch_size):
