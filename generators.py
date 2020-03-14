@@ -9,7 +9,16 @@ from sklearn.metrics import recall_score
 
 from utils.grid_mask import GridMask
 
+def trim_image(image):
+    sum_axis_0 = image.sum(axis=0) > 100
+    sum_axis_1 = image.sum(axis=1) > 100
+    image = image[sum_axis_1, :]
+    image = image[:, sum_axis_0]
+    return image
+
+
 IMAGES = joblib.load('data/original_images')
+IMAGES = {_id: trim_image(image) for _id, image in IMAGES.items()}
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
@@ -23,6 +32,7 @@ augmentor = AA.Compose([
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
     AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=0.8)
 ], p=1)
+
 
 
 def get_image(image_id):
