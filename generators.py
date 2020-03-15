@@ -14,10 +14,14 @@ def black_threshold(img):
 
 def get_component_shape(component):
 
-    x_filter = component.max(axis=1)
+    component = component[3:-3, 3:-3]
+    if component.max() == 0:
+        return 0
+
+    x_filter = component.max(axis=1) > 0
     component = component[x_filter, :]
 
-    y_filter = component.max(axis=0)
+    y_filter = component.max(axis=0) > 0
     component = component[:, y_filter]
 
     return min(component.shape)
@@ -29,11 +33,8 @@ def remove_unwanted_components(img):
     num_component, component = cv2.connectedComponents(img)
     for c in range(1, num_component):
         p = (component == c)
-        plt.imshow(p)
-        plt.show()
         min_shape = get_component_shape(p.copy())
-        print(p.sum(), min_shape)
-        if p.sum() > 50 or min_shape <= 3:
+        if p.sum() > 50 and min_shape >= 3:
             new_image += (img * p)
 
     return new_image.clip(0, 255)
@@ -120,6 +121,9 @@ IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 #
 #
 #
+# new_img.shape
+#
+# #
 # for _id in [a for a,_ in hmm[1404:1405]]:
 #     # _id = np.random.choice(list(IMAGES.keys()))
 #     # _id = []
@@ -173,9 +177,9 @@ IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 # #
 # #
 # #
-
-
-
+#
+#
+#
 
 
 
