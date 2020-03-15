@@ -9,14 +9,14 @@ from sklearn.metrics import recall_score
 
 def black_threshold(img):
     img = img[1:-1, 1:-1]
-    return img * (img > img.min() + 20)
+    return img * (img > (img.max() / 5))
 
 
 def get_component_shape(component):
 
-    component = component[3:-3, 3:-3]
+    component = component[10:-10, 10:-10]
     if component.max() == 0:
-        return 0
+        return (1, 1)
 
     x_filter = component.max(axis=1) > 0
     component = component[x_filter, :]
@@ -24,17 +24,23 @@ def get_component_shape(component):
     y_filter = component.max(axis=0) > 0
     component = component[:, y_filter]
 
-    return min(component.shape)
+    return component.shape
 
 
 def remove_unwanted_components(img):
 
+    img_max = img.max()
     new_image = np.zeros(img.shape)
     num_component, component = cv2.connectedComponents(img)
     for c in range(1, num_component):
         p = (component == c)
-        min_shape = get_component_shape(p.copy())
-        if p.sum() > 50 and min_shape >= 3:
+        p_max = (img * p).max()
+        shape = get_component_shape(p.copy())
+        min_shape, max_shape = min(shape), max(shape)
+        shape_ratio = max_shape / min_shape
+
+        # print(p.sum(), min_shape, shape_ratio)
+        if p.sum() > 50 and min_shape >= 5 and p_max >= (img_max / 2) and shape_ratio <= 12:
             new_image += (img * p)
 
     return new_image.clip(0, 255)
@@ -59,9 +65,10 @@ def pad_image(img):
 
 def trim_image(img):
 
+    trim_value = img.max() / 5
     height, width = img.shape
     for i, (s, c) in enumerate(zip(img.max(axis=0), (img > 5).sum(axis=0))):
-        if s > 5 and c > 3:
+        if s > trim_value and c > 3:
             if i > 5:
                 img = img[:,i-5:]
             else:
@@ -70,7 +77,7 @@ def trim_image(img):
 
     height, width = img.shape
     for i, (s, c) in enumerate(zip(np.flip(img.max(axis=0)), np.flip((img > 5).sum(axis=0)))):
-        if s > 5 and c > 3:
+        if s > trim_value and c > 3:
             if i > 5:
                 img = img[:,:-i + 5]
             else:
@@ -79,7 +86,7 @@ def trim_image(img):
 
     height, width = img.shape
     for i, (s, c) in enumerate(zip(img.max(axis=1), (img > 5).sum(axis=1))):
-        if s > 5 and c > 3:
+        if s > trim_value and c > 3:
             if i > 5:
                 img = img[i-5:,:]
             else:
@@ -88,7 +95,7 @@ def trim_image(img):
 
     height, width = img.shape
     for i, (s, c) in enumerate(zip(np.flip(img.max(axis=1)), np.flip((img > 5).sum(axis=1)))):
-        if s > 5 and c > 3:
+        if s > trim_value and c > 3:
             if i > 5:
                 img = img[:-i + 5,:]
             else:
@@ -106,13 +113,42 @@ def preprocess_original_image(img):
 
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()}
+IMAGES = {_id: preprocess_original_image(image) for _id, image in OIMAGES.items()}
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 
 # ####################################################################################
 # #                       EXPERIMENTATION
 # ####################################################################################
+
+
+
+#
+#
+# hmm = []
+# for _id, img in IMAGES.items():
+#     hmm.append((_id, img.mean(), OIMAGES[_id].mean()))
+# hmm.sort(key=lambda x: x[1])
+#
+# hmm[:10]
+#
+#
+# for i in range(400):
+#     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(10, 3))
+#     axes[0].imshow(OIMAGES[hmm[i][0]])
+#     axes[1].imshow(IMAGES[hmm[i][0]])
+#     axes[2].imshow(preprocess_original_image(OIMAGES[hmm[i][0]].copy()))
+#     axes[0].set_xticks([])
+#     axes[0].set_yticks([])
+#     axes[1].set_xticks([])
+#     axes[1].set_yticks([])
+#     axes[2].set_xticks([])
+#     axes[2].set_yticks([])
+#     plt.tight_layout()
+#     plt.show()
+
+
+
 # #
 # #
 # #
@@ -179,12 +215,12 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=10, shift_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=10, shift_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=0.5),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    # AA.CoarseDropout(min_holes=1, max_holes=10, min_height=2, max_height=8, min_width=2, max_width=8, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=2, max_height=8, min_width=2, max_width=8, p=1.0)
 ], p=1)
 
 valid_augmentor = AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0)
@@ -193,7 +229,7 @@ valid_augmentor = AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_lim
 def get_image(image_id):
     x = IMAGES[image_id].copy()
     x = x - x.min()
-    x = x / np.percentile(x, 99.5)
+    x = x / np.percentile(x, 98)
     return x.clip(0, 1)
 
 
@@ -278,6 +314,9 @@ class MultiOutputImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
 
             x = get_image(row['image_id'])
+
+            if self.is_train:
+                x = augmentor(image=x)['image']
 
             X[i] = np.stack([x, x, x], axis=2)
 
