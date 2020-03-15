@@ -21,7 +21,9 @@ augmentor = AA.Compose([
 
 def get_image(image_id):
     x = IMAGES[image_id].copy()
-    return x / x.max()
+    x = x - x.min()
+    x = x / np.percentile(x, 99.5)
+    return x.clip(0, 1)
 
 
 def plot_augmentations():
@@ -108,7 +110,7 @@ class MultiOutputImageGenerator(Sequence):
 
             if self.is_train:
                 x = augmentor(image=x)['image']
-                
+
             X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
