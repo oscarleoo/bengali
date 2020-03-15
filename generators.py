@@ -107,13 +107,9 @@ class MultiOutputImageGenerator(Sequence):
             x = get_image(row['image_id'])
 
             if self.is_train:
-                x1 = augmentor(image=x)['image']
-                x2 = augmentor(image=x)['image']
-                x3 = augmentor(image=x)['image']
-                X[i] = np.stack([x1, x2, x3], axis=2)
-            else:
-                X[i] = np.stack([x, x, x], axis=2)
-
+                x = augmentor(image=x)['image']
+                
+            X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
