@@ -15,8 +15,15 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=1.0)
+    AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=10, shift_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.RandomContrast(limit=0.2, p=0.5),
+    # AA.Blur(blur_limit=3, p=1.0),
+    # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
+    # AA.CoarseDropout(min_holes=1, max_holes=10, min_height=2, max_height=8, min_width=2, max_width=8, p=1.0)
 ], p=1)
+
+valid_augmentor = AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0)
 
 
 def get_image(image_id):
@@ -108,10 +115,16 @@ class MultiOutputImageGenerator(Sequence):
 
             x = get_image(row['image_id'])
 
-            # if self.is_train:
-            #     x = augmentor(image=x)['image']
+            if self.is_train:
+                x1 = augmentor(image=x)['image']
+                x2 = augmentor(image=x)['image']
+                x3 = augmentor(image=x)['image']
+                X[i] = np.stack([x1, x2, x3], axis=2)
+            else:
+                x1 = valid_augmentor(image=x)['image']
+                x2 = valid_augmentor(image=x)['image']
+                X[i] = np.stack([x, x1, x2], axis=2)
 
-            X[i] = np.stack([x, x, x], axis=2)
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
             consonant_diacritic_Y[i][trainIds.loc[row['image_id']]['consonant_diacritic']] = 1
