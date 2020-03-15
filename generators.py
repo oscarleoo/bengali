@@ -27,7 +27,6 @@ def get_component_shape(component):
     return component.shape
 
 
-
 def get_coordinates(component):
 
     contours = cv2.findContours(component.astype(np.uint8).clip(0, 1), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -53,6 +52,7 @@ def filter_on_distance(components):
         reference[2] - points[3]
     ]) for points in extreme_points]
 
+    print(distances)
     return [c for c, d in zip(components, distances) if d < 40]
 
 
@@ -94,7 +94,6 @@ def pad_image(img):
         img = np.concatenate([padding, img, padding], axis=0)
 
     return img
-
 
 
 def trim_image(img):
@@ -151,82 +150,16 @@ IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 
-# ####################################################################################
-# #                       EXPERIMENTATION
-# ####################################################################################
-
-# #
-# #
-# #
-# #
-# #
-# #
-# #
-# # new_img.shape
-# #
-# # #
-
-# # #
-# # #
-# # #
-# # # IMAGES['Train_123280'].mean() / 255
-# # #
-# # # plt.imshow(IMAGES['Train_123280'])
-# # #
-# # # plt.imshow(test)
-# # #
-# # #
-# # # test = IMAGES['Train_123280'].copy()
-# # # test = test * (test > (test.max() / 4))
-# # #
-# # # sizes = []
-# # # num_component, component = cv2.connectedComponents(test)
-# # # for c in range(1, num_component):
-# # #     p = (component == c)
-# # #     sizes.append(p.sum())
-# # #
-# # #
-# # # sizes
-# # #
-# # # plt.imshow(component == 2)
-# # #
-# # # component.shape
-# # #
-# # # num_component
-# # #
-# # #
-# # # eIMAGES['Train_1543'].shape
-# # #
-# # # 137*236
-# # #
-# # #
-# # #
-# # #
-# # #
-# #
-# #
-# #
-#
-#
-#
-#
-#
-#
-# ####################################################################################
-# #                       END OF EXPERIMENTATION
-# ####################################################################################
-
-
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    # AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=10, shift_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=0.5),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=12, min_width=4, max_width=12, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=2, max_height=8, min_width=2, max_width=8, p=1.0)
 ], p=1)
 
 valid_augmentor = AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0)
@@ -292,23 +225,22 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
 
-        # if self.is_train:
-        #     batchIds = []
-        #
-        #     for grapheme_root in [i for i in range(168)]:
-        #         batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
-        #
-        #     for vowel in [i for i in range(11)]:
-        #         batchIds.append(np.random.choice(self.vowelIds[vowel]))
-        #
-        #     for consonant in [i for i in range(7)]:
-        #         batchIds.append(np.random.choice(self.consonantIds[consonant]))
-        #
-        #     np.random.shuffle(batchIds)
-        #     batch_images = self.images[self.images['image_id'].isin(batchIds)]
-        # else:
+        if self.is_train:
+            batchIds = []
 
-        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
+            for grapheme_root in [i for i in range(168)]:
+                batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
+
+            for vowel in [i for i in range(11)]:
+                batchIds.append(np.random.choice(self.vowelIds[vowel]))
+
+            for consonant in [i for i in range(7)]:
+                batchIds.append(np.random.choice(self.consonantIds[consonant]))
+
+            np.random.shuffle(batchIds)
+            batch_images = self.images[self.images['image_id'].isin(batchIds)]
+        else:
+            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
