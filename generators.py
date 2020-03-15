@@ -14,7 +14,7 @@ def black_threshold(img):
 
 def get_component_shape(component):
 
-    component = component[10:-10, 10:-10]
+    component = component[3:-3, 3:-3]
     if component.max() == 0:
         return (1, 1)
 
