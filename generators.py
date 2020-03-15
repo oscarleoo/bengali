@@ -8,8 +8,107 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
 
+def black_threshold(img):
+    return img * (img > img.min() + 20)
+
+
+def remove_unwanted_components(img):
+
+    new_image = np.zeros(img.shape)
+    num_component, component = cv2.connectedComponents(img)
+    for c in range(1, num_component):
+        p = (component == c)
+        if p.sum() > 50:
+            new_image += (img * p)
+
+    return new_image.clip(0, 255)
+
+
+def preprocess_original_image(img):
+    img = black_threshold(img)
+    img = remove_unwanted_components(img)
+    return img
+
+
+
 IMAGES = joblib.load('data/original_images')
+IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()}
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
+
+
+
+####################################################################################
+#                       EXPERIMENTATION
+####################################################################################
+#
+#
+#
+#
+#
+#
+#
+# for _id in [a for a,_ in hmm[100:300]]:
+#     # _id = np.random.choice(list(IMAGES.keys()))
+#     # _id = []
+#     fix, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
+#     axes[0].imshow(IMAGES[_id])
+#     axes[1].imshow(preprocess_original_image(IMAGES[_id].copy()))
+#     axes[0].set_xticks([])
+#     axes[0].set_yticks([])
+#     axes[1].set_xticks([])
+#     axes[1].set_yticks([])
+#     plt.tight_layout()
+#     plt.show()
+#
+#
+#
+# IMAGES['Train_123280'].mean() / 255
+#
+# plt.imshow(IMAGES['Train_123280'])
+#
+# plt.imshow(test)
+#
+#
+# test = IMAGES['Train_123280'].copy()
+# test = test * (test > (test.max() / 4))
+#
+# sizes = []
+# num_component, component = cv2.connectedComponents(test)
+# for c in range(1, num_component):
+#     p = (component == c)
+#     sizes.append(p.sum())
+#
+#
+# sizes
+#
+# plt.imshow(component == 2)
+#
+# component.shape
+#
+# num_component
+#
+#
+# eIMAGES['Train_1543'].shape
+#
+# 137*236
+#
+#
+#
+#
+#
+
+
+
+
+
+
+
+
+
+####################################################################################
+#                       END OF EXPERIMENTATION
+####################################################################################
+
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -60,7 +159,7 @@ def plot_augmentations():
 
 
 # plot_augmentations()
-
+hmm[:10]
 
 class MultiOutputImageGenerator(Sequence):
 
