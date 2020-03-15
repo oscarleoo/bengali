@@ -15,7 +15,7 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=16, min_width=4, max_width=16, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=1.0)
 ], p=1)
 
 
@@ -52,7 +52,7 @@ def plot_augmentations():
     plt.show()
 
 
-plot_augmentations()
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
