@@ -27,24 +27,59 @@ def get_component_shape(component):
     return component.shape
 
 
+
+def get_coordinates(component):
+
+    contours = cv2.findContours(component.astype(np.uint8).clip(0, 1), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    extreme_points = contours[1][0].squeeze()
+
+    try:
+        x_min, x_max = extreme_points[:,0].min(), extreme_points[:,0].max()
+        y_min, y_max = extreme_points[:,1].min(), extreme_points[:,1].max()
+        return x_min, x_max, y_min, y_max
+    except:
+        return 0, 0, 0, 0
+
+
+def filter_on_distance(components):
+
+    extreme_points = [c[3] for c in components]
+    reference = np.argmax([(p[1] - p[0]) * (p[3] - p[2]) for p in extreme_points])
+    reference = extreme_points[reference]
+    distances = [max([
+        points[0] - reference[1],
+        reference[0] - points[1],
+        points[2] - reference[3],
+        reference[2] - points[3]
+    ]) for points in extreme_points]
+
+    print(distances)
+    return [c for c, d in zip(components, distances) if d < 40]
+
+
 def remove_unwanted_components(img):
 
     img_max = img.max()
     new_image = np.zeros(img.shape)
     num_component, component = cv2.connectedComponents(img)
-    for c in range(1, num_component):
-        p = (component == c)
-        p_max = (img * p).max()
-        shape = get_component_shape(p.copy())
+
+    components = [(
+        component == c,
+        get_component_shape(component == c),
+        ((component == c) * img).max(),
+        get_coordinates(component == c)
+    ) for c in range(1, num_component)]
+
+    components = filter_on_distance(components)
+
+    for p, shape, p_max, contours in components:
         min_shape, max_shape = min(shape), max(shape)
         shape_ratio = max_shape / min_shape
 
-        # print(p.sum(), min_shape, shape_ratio)
-        if p.sum() > 50 and min_shape >= 5 and p_max >= (img_max / 2) and shape_ratio <= 12:
+        if p.sum() > 60 and min_shape >= 5 and p_max >= (img_max / 2) and shape_ratio <= 12:
             new_image += (img * p)
 
     return new_image.clip(0, 255)
-
 
 
 def pad_image(img):
@@ -121,34 +156,6 @@ IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 # #                       EXPERIMENTATION
 # ####################################################################################
 
-
-
-#
-#
-# hmm = []
-# for _id, img in IMAGES.items():
-#     hmm.append((_id, img.mean(), OIMAGES[_id].mean()))
-# hmm.sort(key=lambda x: x[1])
-#
-# hmm[:10]
-#
-#
-# for i in range(400):
-#     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(10, 3))
-#     axes[0].imshow(OIMAGES[hmm[i][0]])
-#     axes[1].imshow(IMAGES[hmm[i][0]])
-#     axes[2].imshow(preprocess_original_image(OIMAGES[hmm[i][0]].copy()))
-#     axes[0].set_xticks([])
-#     axes[0].set_yticks([])
-#     axes[1].set_xticks([])
-#     axes[1].set_yticks([])
-#     axes[2].set_xticks([])
-#     axes[2].set_yticks([])
-#     plt.tight_layout()
-#     plt.show()
-
-
-
 # #
 # #
 # #
@@ -220,7 +227,7 @@ augmentor = AA.Compose([
     # AA.RandomContrast(limit=0.2, p=0.5),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=2, max_height=8, min_width=2, max_width=8, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=12, min_width=4, max_width=12, p=1.0)
 ], p=1)
 
 valid_augmentor = AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=5, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0)
@@ -258,8 +265,6 @@ def plot_augmentations():
     plt.tight_layout()
     plt.show()
 
-
-# plot_augmentations()
 
 class MultiOutputImageGenerator(Sequence):
 
