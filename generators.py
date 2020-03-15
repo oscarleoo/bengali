@@ -192,6 +192,9 @@ def plot_augmentations():
     plt.show()
 
 
+# plot_augmentations()
+
+
 class MultiOutputImageGenerator(Sequence):
 
     def __init__(self, images, batch_size, is_train):
@@ -219,22 +222,22 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
 
-        if self.is_train:
-            batchIds = []
-
-            for grapheme_root in [i for i in range(168)]:
-                batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
-
-            for vowel in [i for i in range(11)]:
-                batchIds.append(np.random.choice(self.vowelIds[vowel]))
-
-            for consonant in [i for i in range(7)]:
-                batchIds.append(np.random.choice(self.consonantIds[consonant]))
-
-            np.random.shuffle(batchIds)
-            batch_images = self.images[self.images['image_id'].isin(batchIds)]
-        else:
-            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
+        # if self.is_train:
+        #     batchIds = []
+        #
+        #     for grapheme_root in [i for i in range(168)]:
+        #         batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
+        #
+        #     for vowel in [i for i in range(11)]:
+        #         batchIds.append(np.random.choice(self.vowelIds[vowel]))
+        #
+        #     for consonant in [i for i in range(7)]:
+        #         batchIds.append(np.random.choice(self.consonantIds[consonant]))
+        #
+        #     np.random.shuffle(batchIds)
+        #     batch_images = self.images[self.images['image_id'].isin(batchIds)]
+        # else:
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
