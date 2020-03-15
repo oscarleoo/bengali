@@ -141,12 +141,11 @@ def preprocess_original_image(img):
     img = black_threshold(img)
     img = remove_unwanted_components(img)
     img = trim_image(img)
-    return img.astype(np.uint8)
+    return cv2.resize(img, (96, 96), interpolation=cv2.INTER_AREA)
 
 
 IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()}
-IMAGES = {_id: cv2.resize(image, (64, 64), interpolation=cv2.INTER_AREA) for _id, image in IMAGES.items()}
 
 
 trainIds = pd.read_csv('data/train.csv')
@@ -154,10 +153,8 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
     AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=2, max_height=8, min_width=2, max_width=8, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=12, min_width=4, max_width=12, p=1.0)
 ], p=1)
-
-valid_augmentor = AA.ShiftScaleRotate(scale_limit=0.1, rotate_limit=20, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0)
 
 
 def get_image(image_id):
@@ -239,7 +236,7 @@ class MultiOutputImageGenerator(Sequence):
         # else:
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 64, 64, 3))
+        X = np.zeros((self.batch_size, 96, 96, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
