@@ -52,7 +52,6 @@ def filter_on_distance(components):
         reference[2] - points[3]
     ]) for points in extreme_points]
 
-    print(distances)
     return [c for c, d in zip(components, distances) if d < 40]
 
 
