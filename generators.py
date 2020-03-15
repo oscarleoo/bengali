@@ -113,7 +113,7 @@ def preprocess_original_image(img):
 
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: preprocess_original_image(image) for _id, image in OIMAGES.items()}
+IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()}
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 
