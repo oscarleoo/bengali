@@ -7,8 +7,8 @@ import albumentations as AA
 import matplotlib.pyplot as plt
 from sklearn.metrics import recall_score
 
-
 def black_threshold(img):
+    img = img[1:-1, 1:-1]
     return img * (img > img.min() + 20)
 
 
@@ -38,12 +38,6 @@ def remove_unwanted_components(img):
             new_image += (img * p)
 
     return new_image.clip(0, 255)
-
-
-def preprocess_original_image(img):
-    img = black_threshold(img)
-    img = remove_unwanted_components(img)
-    return img.astype(np.uint8)
 
 
 
@@ -104,6 +98,12 @@ def trim_image(img):
     return pad_image(img)
 
 
+def preprocess_original_image(img):
+    img = black_threshold(img)
+    img = remove_unwanted_components(img)
+    img = trim_image(img)
+    return img.astype(np.uint8)
+
 
 
 IMAGES = joblib.load('data/original_images')
@@ -124,22 +124,7 @@ IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 # # new_img.shape
 # #
 # # #
-# for _id in [a for a,_ in hmm[15000:15030]]:
-#     # _id = np.random.choice(list(IMAGES.keys()))
-#     # _id = []
-#     fix, axes = plt.subplots(nrows=1, ncols=3, figsize=(13, 4))
-#     axes[0].imshow(IMAGES[_id])
-#     new_img = preprocess_original_image(IMAGES[_id].copy())
-#     axes[1].imshow(new_img)
-#     axes[2].imshow(trim_image(new_img))
-#     axes[0].set_xticks([])
-#     axes[0].set_yticks([])
-#     axes[1].set_xticks([])
-#     axes[1].set_yticks([])
-#     axes[2].set_xticks([])
-#     axes[2].set_yticks([])
-#     plt.tight_layout()
-#     plt.show()
+
 # # #
 # # #
 # # #
