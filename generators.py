@@ -53,7 +53,6 @@ def filter_on_distance(components):
         reference[2] - points[3]
     ]) for points in extreme_points]
 
-    print(distances)
     return [c for c, d in zip(components, distances) if d < 40]
 
 
@@ -222,7 +221,7 @@ trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    # AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=10, shift_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
     # AA.RandomContrast(limit=0.2, p=0.5),
     # AA.Blur(blur_limit=3, p=1.0),
