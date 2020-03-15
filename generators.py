@@ -20,7 +20,7 @@ augmentor = AA.Compose([
     AA.RandomContrast(limit=0.2, p=0.5),
     # AA.Blur(blur_limit=3, p=1.0),
     # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    AA.CoarseDropout(min_holes=4, max_holes=10, min_height=4, max_height=16, min_width=4, max_width=16, p=0.5)
+    AA.CoarseDropout(min_holes=4, max_holes=10, min_height=8, max_height=16, min_width=8, max_width=16, p=1.0)
 ], p=1)
 
 
@@ -55,7 +55,7 @@ def plot_augmentations():
     plt.show()
 
 
-plot_augmentations()
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
