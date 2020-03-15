@@ -66,8 +66,8 @@ def pad_image(img):
 def trim_image(img):
 
     height, width = img.shape
-    for i, s in enumerate(img.max(axis=0)):
-        if s > 5:
+    for i, (s, c) in enumerate(zip(img.max(axis=0), (img > 5).sum(axis=0))):
+        if s > 5 and c > 3:
             if i > 5:
                 img = img[:,i-5:]
             else:
@@ -75,8 +75,8 @@ def trim_image(img):
             break
 
     height, width = img.shape
-    for i, s in enumerate(np.flip(img.max(axis=0))):
-        if s > 5:
+    for i, (s, c) in enumerate(zip(np.flip(img.max(axis=0)), np.flip((img > 5).sum(axis=0)))):
+        if s > 5 and c > 3:
             if i > 5:
                 img = img[:,:-i + 5]
             else:
@@ -84,8 +84,8 @@ def trim_image(img):
             break
 
     height, width = img.shape
-    for i, s in enumerate(img.max(axis=1)):
-        if s > 5:
+    for i, (s, c) in enumerate(zip(img.max(axis=1), (img > 5).sum(axis=1))):
+        if s > 5 and c > 3:
             if i > 5:
                 img = img[i-5:,:]
             else:
@@ -93,8 +93,8 @@ def trim_image(img):
             break
 
     height, width = img.shape
-    for i, s in enumerate(np.flip(img.max(axis=1))):
-        if s > 5:
+    for i, (s, c) in enumerate(zip(np.flip(img.max(axis=1)), np.flip((img > 5).sum(axis=1)))):
+        if s > 5 and c > 3:
             if i > 5:
                 img = img[:-i + 5,:]
             else:
@@ -111,20 +111,20 @@ IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 
-####################################################################################
-#                       EXPERIMENTATION
-####################################################################################
-#
-#
-#
-#
-#
-#
-#
-# new_img.shape
-#
+# ####################################################################################
+# #                       EXPERIMENTATION
+# ####################################################################################
 # #
-# for _id in [a for a,_ in hmm[1404:1405]]:
+# #
+# #
+# #
+# #
+# #
+# #
+# # new_img.shape
+# #
+# # #
+# for _id in [a for a,_ in hmm[15000:15030]]:
 #     # _id = np.random.choice(list(IMAGES.keys()))
 #     # _id = []
 #     fix, axes = plt.subplots(nrows=1, ncols=3, figsize=(13, 4))
@@ -140,55 +140,55 @@ IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 #     axes[2].set_yticks([])
 #     plt.tight_layout()
 #     plt.show()
-# #
-# #
-# #
-# # IMAGES['Train_123280'].mean() / 255
-# #
-# # plt.imshow(IMAGES['Train_123280'])
-# #
-# # plt.imshow(test)
-# #
-# #
-# # test = IMAGES['Train_123280'].copy()
-# # test = test * (test > (test.max() / 4))
-# #
-# # sizes = []
-# # num_component, component = cv2.connectedComponents(test)
-# # for c in range(1, num_component):
-# #     p = (component == c)
-# #     sizes.append(p.sum())
-# #
-# #
-# # sizes
-# #
-# # plt.imshow(component == 2)
-# #
-# # component.shape
-# #
-# # num_component
-# #
-# #
-# # eIMAGES['Train_1543'].shape
-# #
-# # 137*236
-# #
-# #
+# # #
+# # #
+# # #
+# # # IMAGES['Train_123280'].mean() / 255
+# # #
+# # # plt.imshow(IMAGES['Train_123280'])
+# # #
+# # # plt.imshow(test)
+# # #
+# # #
+# # # test = IMAGES['Train_123280'].copy()
+# # # test = test * (test > (test.max() / 4))
+# # #
+# # # sizes = []
+# # # num_component, component = cv2.connectedComponents(test)
+# # # for c in range(1, num_component):
+# # #     p = (component == c)
+# # #     sizes.append(p.sum())
+# # #
+# # #
+# # # sizes
+# # #
+# # # plt.imshow(component == 2)
+# # #
+# # # component.shape
+# # #
+# # # num_component
+# # #
+# # #
+# # # eIMAGES['Train_1543'].shape
+# # #
+# # # 137*236
+# # #
+# # #
+# # #
+# # #
+# # #
 # #
 # #
 # #
 #
 #
 #
-
-
-
-
-
-
-####################################################################################
-#                       END OF EXPERIMENTATION
-####################################################################################
+#
+#
+#
+# ####################################################################################
+# #                       END OF EXPERIMENTATION
+# ####################################################################################
 
 
 trainIds = pd.read_csv('data/train.csv')
@@ -240,7 +240,6 @@ def plot_augmentations():
 
 
 # plot_augmentations()
-hmm[:10]
 
 class MultiOutputImageGenerator(Sequence):
 
