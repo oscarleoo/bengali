@@ -12,13 +12,28 @@ def black_threshold(img):
     return img * (img > img.min() + 20)
 
 
+def get_component_shape(component):
+
+    x_filter = component.max(axis=1)
+    component = component[x_filter, :]
+
+    y_filter = component.max(axis=0)
+    component = component[:, y_filter]
+
+    return min(component.shape)
+
+
 def remove_unwanted_components(img):
 
     new_image = np.zeros(img.shape)
     num_component, component = cv2.connectedComponents(img)
     for c in range(1, num_component):
         p = (component == c)
-        if p.sum() > 50:
+        plt.imshow(p)
+        plt.show()
+        min_shape = get_component_shape(p.copy())
+        print(p.sum(), min_shape)
+        if p.sum() > 50 or min_shape <= 3:
             new_image += (img * p)
 
     return new_image.clip(0, 255)
@@ -27,14 +42,72 @@ def remove_unwanted_components(img):
 def preprocess_original_image(img):
     img = black_threshold(img)
     img = remove_unwanted_components(img)
+    return img.astype(np.uint8)
+
+
+
+def pad_image(img):
+
+    height, width = img.shape
+    if height > width:
+        diff = int((height - width) / 2)
+        padding = np.zeros((height, diff))
+        img = np.concatenate([padding, img, padding], axis=1)
+    elif width > height:
+        diff = int((width - height) / 2)
+        padding = np.zeros((diff, width))
+        img = np.concatenate([padding, img, padding], axis=0)
+
     return img
+
+
+
+def trim_image(img):
+
+    height, width = img.shape
+    for i, s in enumerate(img.max(axis=0)):
+        if s > 5:
+            if i > 5:
+                img = img[:,i-5:]
+            else:
+                img = np.concatenate([np.zeros((height, 5-i)), img], axis=1)
+            break
+
+    height, width = img.shape
+    for i, s in enumerate(np.flip(img.max(axis=0))):
+        if s > 5:
+            if i > 5:
+                img = img[:,:-i + 5]
+            else:
+                img = np.concatenate([img, np.zeros((height, 5-i))], axis=1)
+            break
+
+    height, width = img.shape
+    for i, s in enumerate(img.max(axis=1)):
+        if s > 5:
+            if i > 5:
+                img = img[i-5:,:]
+            else:
+                img = np.concatenate([np.zeros((5-i, width)), img], axis=0)
+            break
+
+    height, width = img.shape
+    for i, s in enumerate(np.flip(img.max(axis=1))):
+        if s > 5:
+            if i > 5:
+                img = img[:-i + 5,:]
+            else:
+                img = np.concatenate([img, np.zeros((5-i, width))], axis=0)
+            break
+
+    return pad_image(img)
+
 
 
 
 IMAGES = joblib.load('data/original_images')
 IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()}
 IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
-
 
 
 ####################################################################################
@@ -47,55 +120,59 @@ IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 #
 #
 #
-# for _id in [a for a,_ in hmm[100:300]]:
+# for _id in [a for a,_ in hmm[1404:1405]]:
 #     # _id = np.random.choice(list(IMAGES.keys()))
 #     # _id = []
-#     fix, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
+#     fix, axes = plt.subplots(nrows=1, ncols=3, figsize=(13, 4))
 #     axes[0].imshow(IMAGES[_id])
-#     axes[1].imshow(preprocess_original_image(IMAGES[_id].copy()))
+#     new_img = preprocess_original_image(IMAGES[_id].copy())
+#     axes[1].imshow(new_img)
+#     axes[2].imshow(trim_image(new_img))
 #     axes[0].set_xticks([])
 #     axes[0].set_yticks([])
 #     axes[1].set_xticks([])
 #     axes[1].set_yticks([])
+#     axes[2].set_xticks([])
+#     axes[2].set_yticks([])
 #     plt.tight_layout()
 #     plt.show()
-#
-#
-#
-# IMAGES['Train_123280'].mean() / 255
-#
-# plt.imshow(IMAGES['Train_123280'])
-#
-# plt.imshow(test)
-#
-#
-# test = IMAGES['Train_123280'].copy()
-# test = test * (test > (test.max() / 4))
-#
-# sizes = []
-# num_component, component = cv2.connectedComponents(test)
-# for c in range(1, num_component):
-#     p = (component == c)
-#     sizes.append(p.sum())
-#
-#
-# sizes
-#
-# plt.imshow(component == 2)
-#
-# component.shape
-#
-# num_component
-#
-#
-# eIMAGES['Train_1543'].shape
-#
-# 137*236
-#
-#
-#
-#
-#
+# #
+# #
+# #
+# # IMAGES['Train_123280'].mean() / 255
+# #
+# # plt.imshow(IMAGES['Train_123280'])
+# #
+# # plt.imshow(test)
+# #
+# #
+# # test = IMAGES['Train_123280'].copy()
+# # test = test * (test > (test.max() / 4))
+# #
+# # sizes = []
+# # num_component, component = cv2.connectedComponents(test)
+# # for c in range(1, num_component):
+# #     p = (component == c)
+# #     sizes.append(p.sum())
+# #
+# #
+# # sizes
+# #
+# # plt.imshow(component == 2)
+# #
+# # component.shape
+# #
+# # num_component
+# #
+# #
+# # eIMAGES['Train_1543'].shape
+# #
+# # 137*236
+# #
+# #
+# #
+# #
+# #
 
 
 
