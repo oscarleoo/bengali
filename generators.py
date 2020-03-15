@@ -9,13 +9,13 @@ from sklearn.metrics import recall_score
 
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (64, 64)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.CoarseDropout(min_holes=4, max_holes=10, min_height=8, max_height=16, min_width=8, max_width=16, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=16, min_width=4, max_width=16, p=1.0)
 ], p=1)
 
 
@@ -97,7 +97,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 96, 96, 3))
+        X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
