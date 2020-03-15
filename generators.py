@@ -9,18 +9,13 @@ from sklearn.metrics import recall_score
 
 
 IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: cv2.resize(image, (128, 128)) for _id, image in IMAGES.items()}
+IMAGES = {_id: cv2.resize(image, (96, 96)) for _id, image in IMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0.2, rotate_limit=5, shift_limit=0.2, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
-    # AA.GridDistortion(num_steps=3, distort_limit=0.2, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.RandomContrast(limit=0.2, p=0.5),
-    # AA.Blur(blur_limit=3, p=1.0),
-    # GridMask(num_grid=(3, 7), rotate=10, p=1.0),
-    AA.CoarseDropout(min_holes=4, max_holes=10, min_height=8, max_height=32, min_width=8, max_width=32, p=1.0)
+    AA.CoarseDropout(min_holes=4, max_holes=10, min_height=8, max_height=16, min_width=8, max_width=16, p=1.0)
 ], p=1)
 
 
@@ -55,7 +50,7 @@ def plot_augmentations():
     plt.show()
 
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -102,7 +97,7 @@ class MultiOutputImageGenerator(Sequence):
         else:
             batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 96, 96, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
