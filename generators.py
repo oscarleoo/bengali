@@ -260,11 +260,17 @@ class MultiOutputImageGenerator(Sequence):
             xO = get_original_image(row['image_id'])
             xP = get_original_image_padded(row['image_id'])
             xT = get_trimmed_image(row['image_id'])
-            x = np.stack([xO, xP, xT], axis=2)
 
             if self.is_train:
-                x = augmentor(image=x)['image']
+                r = np.random.rand()
+                if r <= 0.33:
+                    xO = np.zeros((64, 64))
+                elif r <= 0.66:
+                    xP = np.zeros((64, 64))
+                else:
+                    xT = np.zeros((64, 64))
 
+            x = np.stack([xO, xP, xT], axis=2)
             X[i] = x
 
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
