@@ -141,7 +141,7 @@ def preprocess_original_image(img):
     img = black_threshold(img)
     img = remove_unwanted_components(img)
     img = trim_image(img)
-    return cv2.resize(img, (96, 96), interpolation=cv2.INTER_AREA)
+    return cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA).astype(np.uint8)
 
 
 IMAGES = joblib.load('data/original_images')
@@ -236,7 +236,7 @@ class MultiOutputImageGenerator(Sequence):
         # else:
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 96, 96, 3))
+        X = np.zeros((self.batch_size, 128, 128, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
