@@ -195,7 +195,7 @@ def plot_augmentations():
     plt.show()
 
 
-plot_augmentations()
+# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
