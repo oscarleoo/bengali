@@ -141,7 +141,7 @@ def preprocess_original_image(img):
     img = black_threshold(img)
     img = remove_unwanted_components(img)
     img = trim_image(img)
-    return cv2.resize(img, (64, 64), interpolation=cv2.INTER_AREA)
+    return cv2.resize(img, (96, 96), interpolation=cv2.INTER_AREA)
 
 
 OIMAGES = joblib.load('data/original_images')
@@ -158,7 +158,7 @@ augmentor = AA.Compose([
 
 def get_original_image(image_id):
     x = OIMAGES[image_id].copy()
-    x = cv2.resize(x, (64, 64), interpolation=cv2.INTER_AREA)
+    x = cv2.resize(x, (96, 96), interpolation=cv2.INTER_AREA)
     x = x / np.percentile(x, 99.5)
     return x.clip(0, 1)
 
@@ -166,7 +166,7 @@ def get_original_image(image_id):
 def get_original_image_padded(image_id):
     x = OIMAGES[image_id].copy()
     x = pad_image(x)
-    x = cv2.resize(x, (64, 64), interpolation=cv2.INTER_AREA)
+    x = cv2.resize(x, (96, 96), interpolation=cv2.INTER_AREA)
     x = x / np.percentile(x, 99.9)
     return x.clip(0, 1)
 
@@ -230,24 +230,24 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
 
-        if self.is_train:
-            batchIds = []
+        # if self.is_train:
+        #     batchIds = []
+        #
+        #     for grapheme_root in [i for i in range(168)]:
+        #         batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
+        #
+        #     for vowel in [i for i in range(11)]:
+        #         batchIds.append(np.random.choice(self.vowelIds[vowel]))
+        #
+        #     for consonant in [i for i in range(7)]:
+        #         batchIds.append(np.random.choice(self.consonantIds[consonant]))
+        #
+        #     np.random.shuffle(batchIds)
+        #     batch_images = self.images[self.images['image_id'].isin(batchIds)]
+        # else:
+        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-            for grapheme_root in [i for i in range(168)]:
-                batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
-
-            for vowel in [i for i in range(11)]:
-                batchIds.append(np.random.choice(self.vowelIds[vowel]))
-
-            for consonant in [i for i in range(7)]:
-                batchIds.append(np.random.choice(self.consonantIds[consonant]))
-
-            np.random.shuffle(batchIds)
-            batch_images = self.images[self.images['image_id'].isin(batchIds)]
-        else:
-            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
-
-        X = np.zeros((self.batch_size, 64, 64, 3))
+        X = np.zeros((self.batch_size, 96, 96, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
@@ -314,17 +314,19 @@ class MultiOutputImageGenerator(Sequence):
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
-#
-# df = pd.read_csv('data/train.csv')
-# splits = pd.read_csv('splits/{}/split.csv'.format('split1'))
-# train_ids = list(splits[splits['split'] == 'train']['image_id'])
-# valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
-#
-# train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
-# valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
-#
-# train_generator = MultiOutputImageGenerator(train_df, 186, True)
-# hmm = train_generator.__getitem__(0)
+
+df = pd.read_csv('data/train.csv')
+splits = pd.read_csv('splits/{}/split.csv'.format('split1'))
+train_ids = list(splits[splits['split'] == 'train']['image_id'])
+valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
+
+train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
+valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
+
+train_generator = MultiOutputImageGenerator(train_df, 186, True)
+hmm = train_generator.__getitem__(0)
+
+plt.imshow(hmm[0][-1])
 
 
 def get_data_generators(split, batch_size):
