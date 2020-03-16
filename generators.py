@@ -146,20 +146,28 @@ def preprocess_original_image(img):
 
 OIMAGES = joblib.load('data/original_images')
 IMAGES = {_id: preprocess_original_image(image) for _id, image in OIMAGES.items()}
-OIMAGES = {_id: cv2.resize(image, (64, 64), interpolation=cv2.INTER_AREA) for _id, image in OIMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
-    AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=12, min_width=4, max_width=12, p=1.0)
+    # AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
+    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=1.0)
 ], p=1)
 
 
 def get_original_image(image_id):
     x = OIMAGES[image_id].copy()
+    x = cv2.resize(x, (64, 64), interpolation=cv2.INTER_AREA)
     x = x / np.percentile(x, 99.5)
+    return x.clip(0, 1)
+
+
+def get_original_image_padded(image_id):
+    x = OIMAGES[image_id].copy()
+    x = pad_image(x)
+    x = cv2.resize(x, (64, 64), interpolation=cv2.INTER_AREA)
+    x = x / np.percentile(x, 99.9)
     return x.clip(0, 1)
 
 
@@ -250,12 +258,14 @@ class MultiOutputImageGenerator(Sequence):
         for i, row in batch_images.reset_index().iterrows():
 
             xO = get_original_image(row['image_id'])
+            xP = get_original_image_padded(row['image_id'])
             xT = get_trimmed_image(row['image_id'])
+            x = np.stack([xO, xP, xT], axis=2)
 
-            # if self.is_train:
-            #     x = augmentor(image=x)['image']
+            if self.is_train:
+                x = augmentor(image=x)['image']
 
-            X[i] = np.stack([xO, xO, xT], axis=2)
+            X[i] = x
 
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
@@ -305,6 +315,9 @@ class MultiOutputImageGenerator(Sequence):
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
+plt.imshow(OIMAGES['Train_1'])
+
+plt.imshow(pad_image(OIMAGES['Train_1']))
 
 
 def get_data_generators(split, batch_size):
