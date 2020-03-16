@@ -152,7 +152,7 @@ trainIds = trainIds.set_index('image_id', drop=True)
 
 augmentor = AA.Compose([
     # AA.ShiftScaleRotate(scale_limit=0, rotate_limit=10, shift_limit=0.1, p=1.0, border_mode=cv2.BORDER_CONSTANT, value=0),
-    AA.CoarseDropout(min_holes=1, max_holes=10, min_height=4, max_height=8, min_width=4, max_width=8, p=1.0)
+    AA.CoarseDropout(min_holes=1, max_holes=1, min_height=16, max_height=32, min_width=16, max_width=32, p=1.0)
 ], p=1)
 
 
@@ -180,7 +180,7 @@ def get_trimmed_image(image_id):
 def plot_augmentations():
 
     _id = np.random.choice(list(IMAGES.keys()))
-    image = get_image(_id)
+    image = get_trimmed_image(_id)
 
     plt.figure(figsize=(5, 5))
     plt.imshow(image, cmap='gray')
@@ -201,9 +201,6 @@ def plot_augmentations():
             col += 1
     plt.tight_layout()
     plt.show()
-
-
-# plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -233,22 +230,22 @@ class MultiOutputImageGenerator(Sequence):
     def __getitem__(self, idx):
 
 
-        # if self.is_train:
-        #     batchIds = []
-        #
-        #     for grapheme_root in [i for i in range(168)]:
-        #         batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
-        #
-        #     for vowel in [i for i in range(11)]:
-        #         batchIds.append(np.random.choice(self.vowelIds[vowel]))
-        #
-        #     for consonant in [i for i in range(7)]:
-        #         batchIds.append(np.random.choice(self.consonantIds[consonant]))
-        #
-        #     np.random.shuffle(batchIds)
-        #     batch_images = self.images[self.images['image_id'].isin(batchIds)]
-        # else:
-        batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
+        if self.is_train:
+            batchIds = []
+
+            for grapheme_root in [i for i in range(168)]:
+                batchIds.append(np.random.choice(self.graphemeIds[grapheme_root]))
+
+            for vowel in [i for i in range(11)]:
+                batchIds.append(np.random.choice(self.vowelIds[vowel]))
+
+            for consonant in [i for i in range(7)]:
+                batchIds.append(np.random.choice(self.consonantIds[consonant]))
+
+            np.random.shuffle(batchIds)
+            batch_images = self.images[self.images['image_id'].isin(batchIds)]
+        else:
+            batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
         X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
@@ -262,13 +259,9 @@ class MultiOutputImageGenerator(Sequence):
             xT = get_trimmed_image(row['image_id'])
 
             if self.is_train:
-                r = np.random.rand()
-                if r <= 0.33:
-                    xO = np.zeros((64, 64))
-                elif r <= 0.66:
-                    xP = np.zeros((64, 64))
-                else:
-                    xT = np.zeros((64, 64))
+                xO = augmentor(image=xO)['image']
+                xP = augmentor(image=xP)['image']
+                xT = augmentor(image=xT)['image']
 
             x = np.stack([xO, xP, xT], axis=2)
             X[i] = x
