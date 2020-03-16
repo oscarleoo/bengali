@@ -141,12 +141,12 @@ def preprocess_original_image(img):
     img = black_threshold(img)
     img = remove_unwanted_components(img)
     img = trim_image(img)
-    return cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA).astype(np.uint8)
+    return cv2.resize(img, (64, 64), interpolation=cv2.INTER_AREA)
 
 
-IMAGES = joblib.load('data/original_images')
-IMAGES = {_id: preprocess_original_image(image) for _id, image in IMAGES.items()}
-
+OIMAGES = joblib.load('data/original_images')
+IMAGES = {_id: preprocess_original_image(image) for _id, image in OIMAGES.items()}
+OIMAGES = {_id: cv2.resize(image, (64, 64), interpolation=cv2.INTER_AREA) for _id, image in OIMAGES.items()}
 
 trainIds = pd.read_csv('data/train.csv')
 trainIds = trainIds.set_index('image_id', drop=True)
@@ -157,7 +157,13 @@ augmentor = AA.Compose([
 ], p=1)
 
 
-def get_image(image_id):
+def get_original_image(image_id):
+    x = OIMAGES[image_id].copy()
+    x = x / np.percentile(x, 99.5)
+    return x.clip(0, 1)
+
+
+def get_trimmed_image(image_id):
     x = IMAGES[image_id].copy()
     x = x / np.percentile(x, 98)
     return x.clip(0, 1)
@@ -189,7 +195,7 @@ def plot_augmentations():
     plt.show()
 
 
-# plot_augmentations()
+plot_augmentations()
 
 
 class MultiOutputImageGenerator(Sequence):
@@ -236,19 +242,20 @@ class MultiOutputImageGenerator(Sequence):
         # else:
         batch_images = self.images[idx * self.batch_size : (idx+1) * self.batch_size]
 
-        X = np.zeros((self.batch_size, 128, 128, 3))
+        X = np.zeros((self.batch_size, 64, 64, 3))
         grapheme_root_Y = np.zeros((self.batch_size, 168))
         vowel_diacritic_Y = np.zeros((self.batch_size, 11))
         consonant_diacritic_Y = np.zeros((self.batch_size, 7))
 
         for i, row in batch_images.reset_index().iterrows():
 
-            x = get_image(row['image_id'])
+            xO = get_original_image(row['image_id'])
+            xT = get_trimmed_image(row['image_id'])
 
-            if self.is_train:
-                x = augmentor(image=x)['image']
+            # if self.is_train:
+            #     x = augmentor(image=x)['image']
 
-            X[i] = np.stack([x, x, x], axis=2)
+            X[i] = np.stack([xO, xO, xT], axis=2)
 
             grapheme_root_Y[i][trainIds.loc[row['image_id']]['grapheme_root']] = 1
             vowel_diacritic_Y[i][trainIds.loc[row['image_id']]['vowel_diacritic']] = 1
