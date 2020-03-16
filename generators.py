@@ -321,9 +321,17 @@ class MultiOutputImageGenerator(Sequence):
             self.images['image_id'].values, grapheme_root_predictions, vowel_diacritic_predictions, consonant_diacritic_predictions
         ], index=['image_id', 'grapheme_root', 'vowel_diacritic', 'consonant_diacritic']).T.set_index('image_id')
 
-plt.imshow(OIMAGES['Train_1'])
-
-plt.imshow(pad_image(OIMAGES['Train_1']))
+#
+# df = pd.read_csv('data/train.csv')
+# splits = pd.read_csv('splits/{}/split.csv'.format('split1'))
+# train_ids = list(splits[splits['split'] == 'train']['image_id'])
+# valid_ids = list(splits[splits['split'].isin(['valid', 'test'])]['image_id'])
+#
+# train_df = df[df['image_id'].isin(train_ids)].reset_index(drop=True)
+# valid_df = df[df['image_id'].isin(valid_ids)].reset_index(drop=True)
+#
+# train_generator = MultiOutputImageGenerator(train_df, 186, True)
+# hmm = train_generator.__getitem__(0)
 
 
 def get_data_generators(split, batch_size):
